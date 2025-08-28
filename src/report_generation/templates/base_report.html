@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Interview Summary - {{ student.name }}</title>
+  <style>
+    body{
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin:0; padding:20px; background:#fafafa; color:#333; line-height:1.6;
+    }
+    .header{
+      padding:20px;
+      border-radius:8px;
+      border: 2px solid blue;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      background:#fff;
+    }
+    .header h1{
+      font-size:20px;
+      font-weight:bold;
+      text-align:center;
+      margin:0 0 12px 0;
+      color:#000;
+      padding-bottom:4px;
+    }
+    .header-table{
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:10px;
+    }
+    .header-table td{
+      padding:4px 6px;
+      vertical-align:top;
+      font-size:14px;
+      border:none;
+    }
+    .label{ font-weight:600; white-space:nowrap; }
+    .section{ margin-top: 30px; }
+    table{
+      width:100%; border-collapse:collapse; margin-bottom:20px; background:#fff;
+      border:1px solid #d1d5db; border-radius:6px; overflow:hidden;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+    }
+    th{
+      background:#f3f4f6; font-weight:600; text-align:left; color:#1d4ed8;
+      border-bottom:2px solid #d1d5db;
+    }
+    td,th{ padding:12px; border:1px solid #d1d5db; }
+    tr:nth-child(even){ background:#f9fafb; }
+    img{ max-width:100%; height:auto; border:2px solid #d1d5db; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+    .violation-image{ border:2px solid #d1d5db; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+    .legend-box{
+      margin-top:40px;
+      padding:20px;
+      border:2px solid #2980b9;
+      border-radius:8px;
+      background:#f9fbfd;
+    }
+    .legend-box h2{ margin-top:0; color:#2980b9; }
+    .critical{ color:red; font-weight:bold; }
+    .major{ color:orange; font-weight:bold; }
+    .medium{ color:#f39c12; font-weight:bold; }
+    .low{ color:green; font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+  <h1>INTERVIEW REPORT - {{ student.name }}</h1>
+  <table class="header-table">
+    <tr>
+      <td class="label">Candidate ID</td><td>:</td><td>{{ student.id or '' }}</td>
+      <td class="label">Room Name</td><td>:</td><td>{{ meeting_info.room or meeting_info.room_name or '' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Session ID</td><td>:</td><td>{{ meeting_info.id or '' }}</td>
+      <td class="label">Start Time</td><td>:</td><td>{{ meeting_info.start_time_ist or '' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Status</td><td>:</td><td>{{ (decision and decision.recommendation) or '' }}</td>
+      <td class="label">End Time</td><td>:</td><td>{{ meeting_info.end_time_ist or '' }}</td>
+    </tr>
+    <tr>
+      <td class="label">AI Remarks</td><td>:</td><td>{{ ai_remarks or '' }}</td>
+      <td class="label">Interviewer</td><td>:</td><td>{{ interviewer_name or '' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Network Condition</td><td>:</td><td>{{ network_condition or '' }}</td>
+      <td class="label">Email</td><td>:</td><td>{{ student.email or '' }}</td>
+    </tr>
+  </table>
+
+  <table class="header-table">
+    <tr>
+      <td class="label">Experience :</td>
+      <td>{{ job.experience or '' }}</td>
+      <td class="label">Position applied For :</td>
+      <td>{{ job.position or '' }}</td>
+    </tr>
+    <tr>
+      <td class="label">JD Link :</td>
+      <td>
+        {% if job.jd_link %}
+          <a href="{{ job.jd_link }}" target="_blank" rel="noopener">{{ job.jd_link }}</a>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <table class="header-table">
+    <tr>
+      <td class="label">Scheduled By :</td>
+      <td>
+        {{ scheduled_by or '' }}
+        {% if scheduled_by_email %} ({{ scheduled_by_email }}){% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Current Round :</td>
+      <td>{{ job.current_round or '' }}</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== SUMMARY STATISTICS ===== -->
+<div class="section">
+  <h2>Summary Statistics</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Type of Activity</th>
+        <th>Count</th>
+        <th>Rating</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for type, count in stats.by_type.items() %}
+      {% set display_type = type.replace('_',' ').title() %}
+      <tr>
+        <td>{{ display_type }}</td>
+        <td>{{ count }}</td>
+        <td>{{ stats.ratings[type] }}</td>
+      </tr>
+      {% endfor %}
+      <tr style="font-weight: bold;">
+        <td>Overall Remark</td>
+        <td colspan="2" style="color: #007BFF;">{{ stats.overall_remark }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+{% if timeline_image %}
+<div class="section">
+  <h2>Violation Timeline</h2>
+  <img class="violation-image" src="file:///{{ timeline_image }}" alt="Violation Timeline" />
+</div>
+{% endif %}
+
+<!-- ===== DETAILED VIOLATIONS ===== -->
+<div class="section">
+  <h2>Detailed Violations</h2>
+  {% set groups = {} %}
+  {% for v in violations %}
+    {% set _ = groups.setdefault(v.type, []).append(v) %}
+  {% endfor %}
+  {% for type, items in groups.items() %}
+    {% set display_type = type.replace('_',' ').title() %}
+    <div class="violation">
+      <h3>{{ display_type }} ({{ items | length }} instances)</h3>
+      <table style="width:100%; border-collapse:collapse;">
+        <tr>
+          {% for v in items %}
+            {% if v.image_path %}
+            <td style="width:50%; text-align:center; vertical-align:top; padding:10px;">
+              <div style="font-weight:bold; margin-bottom:5px;">{{ v.timestamp }}</div>
+              <img src="file:///{{ v.image_path }}" alt="Violation Capture" style="max-width:100%; max-height:250px; border:1px solid #ccc;" />
+              {% if v.metadata %}
+              <pre style="text-align:left; font-size:10px; margin-top:5px;">{{ v.metadata | tojson(indent=2) }}</pre>
+              {% endif %}
+            </td>
+            {% endif %}
+            {% if loop.index is divisibleby 2 %}</tr><tr>{% endif %}
+          {% endfor %}
+        </tr>
+      </table>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- ===== INTERVIEW ANALYSIS ===== -->
+<div class="section">
+  <h2>Interview Analysis</h2>
+
+  {% if candidate_analysis %}
+  <h3>Candidate Evaluation</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th>Evaluation</th>
+        <th>Explanation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in candidate_analysis %}
+        {% if row.criteria == "Attitude" %}
+        <tr>
+          <td>{{ row.criteria }}</td>
+          <td>{{ row.value }}</td>
+          <td>{{ row.explanation }}</td>
+        </tr>
+        {% elif row.criteria == "Overall Remark" %}
+        <tr>
+          <td colspan="3"><strong>Overall Remark: {{ row.value }}</strong></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td>{{ row.criteria }}</td>
+          <td>{{ row.value }}</td>
+          <td>{{ row.explanation }}</td>
+        </tr>
+        {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No candidate evaluation data available.</p>
+  {% endif %}
+
+  {% if interviewer_analysis %}
+  <h3>Interviewer Evaluation</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Evaluation</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in interviewer_analysis %}
+      <tr>
+        <td>{{ row.aspect }}</td>
+        <td>{{ row.value }}</td>
+        <td>{{ row.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No interviewer evaluation data available.</p>
+  {% endif %}
+
+  {% if decision %}
+  <h3>Final Suggestion to Proceed</h3>
+  <table>
+    <tr>
+      <th>Recommendation</th>
+      <td>{{ decision.recommendation }}</td>
+    </tr>
+    <tr>
+      <th>Summary</th>
+      <td>{{ decision.summary }}</td>
+    </tr>
+  </table>
+  {% else %}
+  <p>No final recommendation available.</p>
+  {% endif %}
+</div>
+
+<!-- ===== LEGEND & SEVERITY ===== -->
+<div class="legend-box">
+  <h2>Legend & Severity Guidelines</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Violation Type</th>
+        <th>Critical</th>
+        <th>Major</th>
+        <th>Medium</th>
+        <th>Explanation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for vtype, rules in thresholds.items() %}
+      <tr>
+        <td>{{ vtype.replace('_',' ').title() }}</td>
+        <td class="critical">{{ rules.critical }}</td>
+        <td class="major">{{ rules.major }}</td>
+        <td class="medium">{{ rules.medium }}</td>
+        <td>{{ legend_explanations.get(vtype, "No explanation available.") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
