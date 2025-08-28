@@ -23,13 +23,29 @@ from services.send_message import send_email_with_attachments
 from pathlib import Path
 import subprocess
 import os
+from utils.api_utils import (
+    # get_next_daily_meeting as api_get_next_daily_meeting,
+    get_active_participants as api_get_active_participants,
+    get_meeting_details as api_get_meeting_details,
+)
+# centralized utils (lift-and-shift, same behavior)
+from utils.time_utils import utc_to_ist
+from utils.api_utils import (
+    get_daily_headers,
+    list_recordings as api_list_recordings,
+    get_latest_recording_for_room as api_get_latest_recording_for_room,
+    get_recording_access_link as api_get_recording_access_link,
+)
+from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video
 
 # =======================
 #    CONFIG / CONSTANTS
 # =======================
-DAILY_API_KEY = "73cdd4c6a7240308bdbe80621d62309d0cbada79ea4081fa1af29a0c12f6fadf"
+from utils.env_utils import load_dotenv, get_daily_api_key
+load_dotenv()  # load .env at repo root if present
+DAILY_API_KEY = get_daily_api_key()
 DAILY_API_BASE = "https://api.daily.co/v1"
-HEADERS = {"Authorization": f"Bearer {DAILY_API_KEY}"}
+HEADERS = {"Authorization": f"Bearer {DAILY_API_KEY}"} if DAILY_API_KEY else {}
 
 # How long to poll for the cloud recording to appear after leaving (seconds)
 RECORDING_POLL_TOTAL_SECS = 180  # 3 minutes total
@@ -81,58 +97,30 @@ class AlertLogger:
 # =======================
 #   DAILY API HELPERS
 # =======================
-def get_next_daily_meeting():
-    url = f"{DAILY_API_BASE}/rooms"
-    res = requests.get(url, headers=HEADERS)
-    rooms = res.json().get("data", [])
-    if not rooms:
-        return None, None
 
-    rooms.sort(key=lambda r: r.get("config", {}).get("nbf", 0))
-    next_room = rooms[2]
-    meeting_time = datetime.fromtimestamp(next_room["config"].get("nbf", time.time()), tz=timezone.utc)
-    return meeting_time, next_room["url"]
+# def get_next_daily_meeting():
+#     return api_get_next_daily_meeting(HEADERS)
 
 def get_active_participants(room_name):
-    url = f"{DAILY_API_BASE}/rooms/{room_name}/presence"
     try:
-        res = requests.get(url, headers=HEADERS)
-        data = res.json().get("data", [])
-        filtered = [
-            participant for participant in data
-            if participant.get("userName") not in ["Observer Bot"]
-        ]
-        return filtered
+        return api_get_active_participants(room_name, HEADERS)
     except Exception as e:
         print(f"❌ Failed to fetch participant list: {e}")
         return []
 
 def get_meeting_details(room_name):
-    url = f"{DAILY_API_BASE}/meetings"
     try:
-        res = requests.get(url, headers=HEADERS)
-        res.raise_for_status()
-        meetings = res.json().get("data", [])
-        for meeting in meetings:
-            if meeting.get("room") == room_name:
-                return {
-                    "id": meeting.get("id"),
-                    "room": meeting.get("room"),
-                    "start_time": meeting.get("start_time"),
-                    "duration": meeting.get("duration")
-                }
-        print(f"⚠️ No meeting found for room: {room_name}")
-        return None
+        details = api_get_meeting_details(room_name, HEADERS)
+        if not details:
+            print(f"⚠️ No meeting found for room: {room_name}")
+        return details
     except Exception as e:
         print(f"❌ Failed to fetch meeting details: {e}")
         return None
 
 def list_recordings():
     """Return list of all recordings (Daily cloud)."""
-    url = f"{DAILY_API_BASE}/recordings"
-    res = requests.get(url, headers=HEADERS)
-    res.raise_for_status()
-    return res.json().get("data", [])
+    return api_list_recordings(HEADERS)
 
 def get_latest_recording_for_room(room_name):
     """
@@ -140,12 +128,7 @@ def get_latest_recording_for_room(room_name):
     Recording fields we rely on: id, room_name, created_at
     """
     try:
-        recs = list_recordings()
-        matches = [r for r in recs if r.get("room_name") == room_name]
-        if not matches:
-            return None
-        latest = sorted(matches, key=lambda r: r.get("created_at", ""), reverse=True)[0]
-        return latest
+        return api_get_latest_recording_for_room(room_name, HEADERS)
     except Exception as e:
         print(f"❌ Error listing recordings: {e}")
         return None
@@ -155,38 +138,18 @@ def get_recording_access_link(recording_id):
     Get an access (download) link for a recording.
     Response may have 'download_link' or 'url' depending on account/config.
     """
-    url = f"{DAILY_API_BASE}/recordings/{recording_id}/access-link"
-    res = requests.get(url, headers=HEADERS)
-    res.raise_for_status()
-    data = res.json()
-    return data.get("download_link") or data.get("url")
+    return api_get_recording_access_link(recording_id, HEADERS)
 
 def download_file(url, dest_path: Path):
     """Stream download to dest_path."""
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(dest_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+    return util_download_file(url, dest_path)
 
 # =======================
 #   MEDIA UTIL HELPERS
 # =======================
 def extract_audio_from_video(video_path: Path, audio_path: Path):
     """Extract PCM 16k mono WAV using ffmpeg."""
-    command = [
-        "ffmpeg", "-y",
-        "-i", str(video_path),
-        "-vn",
-        "-acodec", "pcm_s16le",
-        "-ar", "16000",
-        "-ac", "1",
-        str(audio_path)
-    ]
-    subprocess.run(command, check=True)
-    print(f"🎵 Audio extracted to {audio_path}")
+    return util_extract_audio_from_video(video_path, audio_path)
 
 def fetch_cloud_recording_wav(room_name: str) -> Path | None:
     """
@@ -211,9 +174,7 @@ def fetch_cloud_recording_wav(room_name: str) -> Path | None:
                 try:
                     link = get_recording_access_link(rec_id)
                     if link:
-                        # decide extension based on link if possible, else default mp4
                         ext = ".mp4"
-                        # some Daily accounts deliver .webm
                         if ".webm" in link.lower():
                             ext = ".webm"
                         video_path = downloads_dir / f"{room_name}_{rec_id}{ext}"
@@ -222,7 +183,6 @@ def fetch_cloud_recording_wav(room_name: str) -> Path | None:
                         print(f"✅ Downloaded recording to {video_path}")
                         break
                 except Exception as e:
-                    # Access link might not be ready yet; keep polling
                     print(f"⚠️ Access link not ready yet ({e}); retrying...")
                     last_seen_id = rec_id
 
@@ -260,7 +220,7 @@ def join_daily(meeting_time_utc, meeting_url):
     session_ts_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         # No need for accept_downloads (we are not saving browser downloads)
         context = browser.new_context(permissions=["camera", "microphone", "midi", "midi-sysex"])
         page = context.new_page()
@@ -383,7 +343,7 @@ def join_daily(meeting_time_utc, meeting_url):
                     eye.track_eyes(cv_frame)
                     mouth.monitor_mouth(cv_frame)
                     multi.detect_multiple_faces(cv_frame)
-                    objects.detect_objects(cv_frame)
+                    objects.detect_objects(cv_frame, visualize=True)
 
                 if daily_frame:
                     try:
@@ -607,15 +567,15 @@ def join_daily(meeting_time_utc, meeting_url):
 #           MAIN
 # =======================
 if __name__ == "__main__":
-    t, url = get_next_daily_meeting()
-    if t and url:
-        join_daily(t, url)
-    else:
-        print("❌ No Daily.co meeting found.")
-    # if len(sys.argv) >= 3:
-    #     url = sys.argv[1]
-    #     room_name = sys.argv[2]
-    #     meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-    #     join_daily(meeting_time_utc, url)
+    # t, url = get_next_daily_meeting()
+    # if t and url:
+    #     join_daily(t, url)
     # else:
-    #     print("❌ Please provide room URL and name as arguments.")
+    #     print("❌ No Daily.co meeting found.")
+    if len(sys.argv) >= 3:
+        url = sys.argv[1]
+        room_name = sys.argv[2]
+        meeting_time_utc = datetime.now(timezone.utc)  # assume join now
+        join_daily(meeting_time_utc, url)
+    else:
+        print("❌ Please provide room URL and name as arguments.")

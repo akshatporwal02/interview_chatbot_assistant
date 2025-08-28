@@ -4,50 +4,20 @@ import sys
 import os
 import time
 
-DAILY_API_KEY = "73cdd4c6a7240308bdbe80621d62309d0cbada79ea4081fa1af29a0c12f6fadf"
-DAILY_API_BASE = "https://api.daily.co/v1"
-HEADERS = {"Authorization": f"Bearer {DAILY_API_KEY}"}
+from utils.api_utils import get_daily_headers, list_rooms, is_meeting_ongoing as api_is_meeting_ongoing
+from utils.env_utils import load_dotenv, get_daily_api_key
+
+load_dotenv()
+DAILY_API_KEY = get_daily_api_key()
+HEADERS = get_daily_headers(DAILY_API_KEY) if DAILY_API_KEY else {}
 
 
 def get_all_rooms():
-    url = f"{DAILY_API_BASE}/rooms"
-    res = requests.get(url, headers=HEADERS)
-    res.raise_for_status()
-    return res.json().get("data", [])
+    return list_rooms(HEADERS)
 
 
 def is_meeting_ongoing(room_name):
-    """
-    Return tri-state: 'bot_present', 'ongoing', 'idle'
-    - Use presence to detect the Observer Bot accurately
-    - Use meetings endpoint to know if the room is flagged as ongoing
-    """
-    # 1) Presence check for the bot
-    presence_url = f"{DAILY_API_BASE}/rooms/{room_name}/presence"
-    try:
-        res = requests.get(presence_url, headers=HEADERS)
-        res.raise_for_status()
-        participants = res.json().get("data", [])
-        for p in participants:
-            name = (p.get("userName") or p.get("user_name") or p.get("name") or "").strip()
-            if name == "Observer Bot":
-                return "bot_present"
-    except Exception as e:
-        print(f"⚠️ Presence check failed for {room_name}: {e}")
-
-    # 2) Meetings endpoint to know ongoing status
-    try:
-        url = f"{DAILY_API_BASE}/meetings"
-        res = requests.get(url, headers=HEADERS)
-        res.raise_for_status()
-        meetings = res.json().get("data", [])
-        for meeting in meetings:
-            if meeting.get("room") == room_name and meeting.get("ongoing", False):
-                return "ongoing"
-    except Exception as e:
-        print(f"⚠️ Meetings check failed for {room_name}: {e}")
-
-    return "idle"
+    return api_is_meeting_ongoing(room_name, HEADERS)
 
 
 def launch_room_bot(room_url, room_name):
