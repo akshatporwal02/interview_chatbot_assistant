@@ -40,7 +40,7 @@ class FaceDetector:
                 if disappearance_duration > 5 and self.alert_logger:
                     self.alert_logger.log_alert(
                         "FACE_REAPPEARED",
-                        f"Face reappeared after {disappearance_duration:.1f} seconds",frame
+                        f"Kindly remain in view",frame
                     )
             
             self.face_present = True
@@ -56,6 +56,6 @@ class FaceDetector:
                 if self.alert_logger:
                     self.alert_logger.log_alert(
                         "FACE_DISAPPEARED",
-                        "Face disappeared for more than 5 seconds",frame
+                        "Kindly stay in view",frame
                     )
             return False

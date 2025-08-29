@@ -103,7 +103,7 @@ class EyeTracker:
                 self.alert_logger):
                 self.alert_logger.log_alert(
                     "EYE_MOVEMENT",
-                    "Excessive eye movement detected",
+                    "detected. Kindly maintain steady focus",
                     frame
                 )
                 self.gaze_changes = 0

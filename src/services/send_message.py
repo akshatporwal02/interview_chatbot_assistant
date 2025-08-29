@@ -14,19 +14,19 @@ def send_email_with_attachments(report_path, student_name, receiver_email, room_
         receiver_email (str): Recipient email address
         room_name (str): Room name to find corresponding transcript and log files
     """
-    sender_email = "akshatporwal022003@gmail.com"
-    app_password = "agmp myvy ogpc ycey"  # Use App Password for Gmail
+    sender_email = ""
+    app_password = ""  # Use App Password for Gmail
 
-    subject = f"Complete Interview Package for {student_name}"
-    body = f"""Hello,
+    subject = f"Interview Summary Files for {student_name}"
+    body = f"""Hello team,
 
-Please find the complete interview package for {student_name} attached:
+Please find attached the complete interview summary files for  {student_name} , which include:
 
-📄 PDF Report - Comprehensive analysis and evaluation
-📝 Transcript File - Complete conversation transcript  
-📋 Log File - System alerts and monitoring data
+📄 Evaluation Report (PDF) -  A detailed analysis and assessment of the candidate’s performance  
+📝 Transcript File - A complete record of the interview conversation  
+📋 Log File - System alerts and monitoring details
 
-This package provides complete transparency and detailed insights into the interview session.
+These files are provided to ensure transparency and offer comprehensive insights into the session
 
 Best regards,
 Concret.io Team"""

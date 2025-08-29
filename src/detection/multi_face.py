@@ -175,7 +175,7 @@ class MultiFaceDetector:
             if (self.consecutive_frames >= self.threshold) and self.alert_logger and not self.alert_triggered:
                 self.alert_logger.log_alert(
                     "MULTIPLE_FACES",
-                    f"Alert! MULTIPLE FACES detected. Only the candidate must be visible.",
+                    f"detected. Only the candidate must be visible.",
                     frame
                 )
                 self.alert_triggered = True

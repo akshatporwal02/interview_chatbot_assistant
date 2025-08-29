@@ -69,7 +69,8 @@ class AlertLogger:
         self.file_logger = file_logger
 
     def log_alert(self, alert_type, message, frame=None):
-        alert_text = f"⚠️ {alert_type} {message}"
+        display_type = alert_type.replace('_', ' ')
+        alert_text = f"⚠️ {display_type} {message}"
         print(alert_text)
 
         timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
@@ -498,7 +499,7 @@ def join_daily(meeting_time_utc, meeting_url):
                     #     send_email_with_attachments(
                     #       report_path=report_path,
                     #       student_name=student['name'],
-                    #       receiver_email='m.gupta@concret.io',
+                    #       receiver_email='',
                     #       room_name=room_name
                     #       )
                     # except Exception as e:
@@ -554,7 +555,7 @@ def join_daily(meeting_time_utc, meeting_url):
                 #     send_email_with_attachments(
                 #           report_path=report_path,
                 #           student_name=student['name'],
-                #           receiver_email='m.gupta@concret.io',
+                #           receiver_email='',
                 #           room_name=room_name
                 #           )
                 # except Exception as e:

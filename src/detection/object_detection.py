@@ -112,7 +112,7 @@ class ObjectDetector:
                             if self.alert_logger:
                                 self.alert_logger.log_alert(
                                     "FORBIDDEN_OBJECT",
-                                    f"Detected {label} with confidence {conf:.2f}",
+                                    f"detected : {label}. Kindly refrain from using such objects.",
                                     frame
                                 )
 
