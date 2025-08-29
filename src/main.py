@@ -36,31 +36,26 @@ from utils.api_utils import (
     get_latest_recording_for_room as api_get_latest_recording_for_room,
     get_recording_access_link as api_get_recording_access_link,
 )
-from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video
+from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video, fetch_cloud_recording_wav as util_fetch_cloud_recording_wav
 
-# =======================
+
 #    CONFIG / CONSTANTS
-# =======================
+
 from utils.env_utils import load_dotenv, get_daily_api_key
 load_dotenv()  # load .env at repo root if present
 DAILY_API_KEY = get_daily_api_key()
 DAILY_API_BASE = "https://api.daily.co/v1"
 HEADERS = {"Authorization": f"Bearer {DAILY_API_KEY}"} if DAILY_API_KEY else {}
 
-# How long to poll for the cloud recording to appear after leaving (seconds)
-RECORDING_POLL_TOTAL_SECS = 180  # 3 minutes total
-RECORDING_POLL_INTERVAL_SECS = 6  # check every 6s
-
-# =======================
 #     TIMEZONE HELPERS
-# =======================
+
 def utc_to_ist(utc_dt):
     ist = pytz.timezone("Asia/Kolkata")
     return utc_dt.astimezone(ist)
 
-# =======================
+
 #        LOGGER
-# =======================
+
 class AlertLogger:
     def __init__(self, chat_queue=None, capturer=None, violations_list=None, file_logger=None):
         self.chat_queue = chat_queue
@@ -95,9 +90,9 @@ class AlertLogger:
         if self.chat_queue:
             self.chat_queue.put(alert_text)
 
-# =======================
+
 #   DAILY API HELPERS
-# =======================
+
 
 # def get_next_daily_meeting():
 #     return api_get_next_daily_meeting(HEADERS)
@@ -145,66 +140,16 @@ def download_file(url, dest_path: Path):
     """Stream download to dest_path."""
     return util_download_file(url, dest_path)
 
-# =======================
+
 #   MEDIA UTIL HELPERS
-# =======================
+
 def extract_audio_from_video(video_path: Path, audio_path: Path):
     """Extract PCM 16k mono WAV using ffmpeg."""
     return util_extract_audio_from_video(video_path, audio_path)
 
-def fetch_cloud_recording_wav(room_name: str) -> Path | None:
-    """
-    Wait for Daily cloud recording for this room, then download and
-    extract audio to WAV. Returns path to WAV, or None if unavailable.
-    """
-    downloads_dir = Path("session_data/recordings")
-    video_path = None
 
-    deadline = time.time() + RECORDING_POLL_TOTAL_SECS
-    attempt = 0
-    last_seen_id = None
-
-    print(f"⏳ Waiting for Daily cloud recording for room '{room_name}' ...")
-    while time.time() < deadline:
-        attempt += 1
-        rec = get_latest_recording_for_room(room_name)
-        if rec:
-            rec_id = rec.get("id")
-            if rec_id and rec_id != last_seen_id:
-                print(f"📦 Found recording candidate (attempt {attempt}): {rec_id}")
-                try:
-                    link = get_recording_access_link(rec_id)
-                    if link:
-                        ext = ".mp4"
-                        if ".webm" in link.lower():
-                            ext = ".webm"
-                        video_path = downloads_dir / f"{room_name}_{rec_id}{ext}"
-                        print(f"⬇️  Downloading recording from access link...")
-                        download_file(link, video_path)
-                        print(f"✅ Downloaded recording to {video_path}")
-                        break
-                except Exception as e:
-                    print(f"⚠️ Access link not ready yet ({e}); retrying...")
-                    last_seen_id = rec_id
-
-        time.sleep(RECORDING_POLL_INTERVAL_SECS)
-
-    if not video_path or not video_path.exists():
-        print("❌ Could not obtain cloud recording file.")
-        return None
-
-    audio_path = video_path.with_suffix(".wav")
-    try:
-        extract_audio_from_video(video_path, audio_path)
-    except subprocess.CalledProcessError as e:
-        print(f"❌ ffmpeg failed to extract audio: {e}")
-        return None
-
-    return audio_path
-
-# =======================
 #   JOIN & MONITOR FLOW
-# =======================
+
 def join_daily(meeting_time_utc, meeting_url):
     now_utc = datetime.now(timezone.utc)
     wait_seconds = (meeting_time_utc - now_utc).total_seconds()
@@ -440,7 +385,11 @@ def join_daily(meeting_time_utc, meeting_url):
         transcript_text = None
 
         print("📥 Fetching cloud recording & extracting audio...")
-        wav_path = fetch_cloud_recording_wav(room_name)
+        poll_cfg = config.get('recording', {})
+        poll_total = int(poll_cfg.get('poll_total_secs', 180))
+        poll_interval = int(poll_cfg.get('poll_interval_secs', 6))
+        # wav_path = fetch_cloud_recording_wav(room_name)
+        wav_path = util_fetch_cloud_recording_wav(room_name, HEADERS, poll_total, poll_interval)
 
         if wav_path and wav_path.exists():
             print(f"📝 Transcribing audio from {wav_path} using faster-whisper via AudioMonitor...")
@@ -511,9 +460,9 @@ def join_daily(meeting_time_utc, meeting_url):
         else:
             print("⚠️ No participants found, generating default report")
             student = {
-                'id': datetime.now().strftime('%Y%m%d%H%M%S'),
-                'name': 'Unknown Participant',
-                'email': 'unknown@example.com'
+                'id': '',
+                'name': 'No Participant',
+                'email': ''
             }
 
             # Ensure status and evaluation show for no-participant sessions

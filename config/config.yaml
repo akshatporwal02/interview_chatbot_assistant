@@ -87,3 +87,7 @@ reporting:
     MULTIPLE_FACES: 4
     OBJECT_DETECTED: 5
     AUDIO_DETECTED: 3
+  # config/config.yaml
+recording:
+  poll_total_secs: 180       # total time to wait for cloud recording (seconds)
+  poll_interval_secs: 6      # interval between polls (seconds)
