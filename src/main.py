@@ -24,7 +24,7 @@ from pathlib import Path
 import subprocess
 import os
 from utils.api_utils import (
-    # get_next_daily_meeting as api_get_next_daily_meeting,
+    get_next_daily_meeting as api_get_next_daily_meeting,
     get_active_participants as api_get_active_participants,
     get_meeting_details as api_get_meeting_details,
 )
@@ -94,8 +94,8 @@ class AlertLogger:
 #   DAILY API HELPERS
 
 
-# def get_next_daily_meeting():
-#     return api_get_next_daily_meeting(HEADERS)
+def get_next_daily_meeting():
+    return api_get_next_daily_meeting(HEADERS)
 
 def get_active_participants(room_name):
     try:
@@ -378,6 +378,9 @@ def join_daily(meeting_time_utc, meeting_url):
 
         page.wait_for_timeout(2000)
         browser.close()
+        if not meeting_participants:
+            print("As there were no participants in the session, report generation was not applicable.")
+            return
 
         # ============================================
         #   FETCH CLOUD RECORDING → EXTRACT → TRANSCRIBE
@@ -459,73 +462,73 @@ def join_daily(meeting_time_utc, meeting_url):
 
         else:
             print("⚠️ No participants found, generating default report")
-            student = {
-                'id': '',
-                'name': 'No Participant',
-                'email': ''
-            }
+            # student = {
+            #     'id': '',
+            #     'name': 'No Participant',
+            #     'email': ''
+            # }
 
-            # Ensure status and evaluation show for no-participant sessions
-            if not candidate_analysis:
-                candidate_analysis = [
-                    {"criteria": "Communication Skills", "value": "N/A", "score": None, "explanation": ""},
-                    {"criteria": "Technical Skills", "value": "N/A", "score": None, "explanation": ""},
-                    {"criteria": "Attitude", "value": "N/A", "score": None, "explanation": ""},
-                    {"criteria": "Overall Remark", "value": "N/A", "score": None, "explanation": ""},
-                ]
-            if not interviewer_analysis:
-                interviewer_analysis = [
-                    {"aspect": "Questions Asked", "value": "N/A", "description": ""},
-                    {"aspect": "Difficulty Level", "value": "N/A", "description": ""},
-                    {"aspect": "Attitude", "value": "N/A", "description": ""},
-                ]
-            if not decision or not decision.get("recommendation"):
-                decision = {"recommendation": "No Show", "summary": "No participants joined the session."}
+            # # Ensure status and evaluation show for no-participant sessions
+            # if not candidate_analysis:
+            #     candidate_analysis = [
+            #         {"criteria": "Communication Skills", "value": "N/A", "score": None, "explanation": ""},
+            #         {"criteria": "Technical Skills", "value": "N/A", "score": None, "explanation": ""},
+            #         {"criteria": "Attitude", "value": "N/A", "score": None, "explanation": ""},
+            #         {"criteria": "Overall Remark", "value": "N/A", "score": None, "explanation": ""},
+            #     ]
+            # if not interviewer_analysis:
+            #     interviewer_analysis = [
+            #         {"aspect": "Questions Asked", "value": "N/A", "description": ""},
+            #         {"aspect": "Difficulty Level", "value": "N/A", "description": ""},
+            #         {"aspect": "Attitude", "value": "N/A", "description": ""},
+            #     ]
+            # if not decision or not decision.get("recommendation"):
+            #     decision = {"recommendation": "No Show", "summary": "No participants joined the session."}
 
-            report_gen = ReportGenerator(config)
+            # report_gen = ReportGenerator(config)
 
-            # Ensure meeting_info carries room + session for consistent naming
-            meeting_info = meeting_info or {}
-            meeting_info.setdefault('room_name', room_name)
-            meeting_info.setdefault('session_timestamp', session_ts_str)
+            # # Ensure meeting_info carries room + session for consistent naming
+            # meeting_info = meeting_info or {}
+            # meeting_info.setdefault('room_name', room_name)
+            # meeting_info.setdefault('session_timestamp', session_ts_str)
 
-            report_path = report_gen.generate_report(
-                student,
-                violations,
-                candidate_analysis=candidate_analysis,
-                interviewer_analysis=interviewer_analysis,
-                decision=decision,
-                transcript_text=llm_analysis,
-                meeting_info=meeting_info
-            )
-            if report_path:
-                print(f"📄 Default report saved: {report_path}")
-                # try:
-                #     send_email_with_attachments(
-                #           report_path=report_path,
-                #           student_name=student['name'],
-                #           receiver_email='',
-                #           room_name=room_name
-                #           )
-                # except Exception as e:
-                #           print(f"❌ Failed to send email for {student['name']}: {e}")
+            # report_path = report_gen.generate_report(
+            #     student,
+            #     violations,
+            #     candidate_analysis=candidate_analysis,
+            #     interviewer_analysis=interviewer_analysis,
+            #     decision=decision,
+            #     transcript_text=llm_analysis,
+            #     meeting_info=meeting_info
+            # )
+            # if report_path:
+            #     print(f"📄 Default report saved: {report_path}")
+            #     # try:
+            #     #     send_email_with_attachments(
+            #     #           report_path=report_path,
+            #     #           student_name=student['name'],
+            #     #           receiver_email='',
+            #     #           room_name=room_name
+            #     #           )
+            #     # except Exception as e:
+            #     #           print(f"❌ Failed to send email for {student['name']}: {e}")
 
-            else:
-                print("❌ Default report generation failed")
+            # else:
+            #     print("❌ Default report generation failed")
 
 # =======================
 #           MAIN
 # =======================
 if __name__ == "__main__":
-    # t, url = get_next_daily_meeting()
-    # if t and url:
-    #     join_daily(t, url)
-    # else:
-    #     print("❌ No Daily.co meeting found.")
-    if len(sys.argv) >= 3:
-        url = sys.argv[1]
-        room_name = sys.argv[2]
-        meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-        join_daily(meeting_time_utc, url)
+    t, url = get_next_daily_meeting()
+    if t and url:
+        join_daily(t, url)
     else:
-        print("❌ Please provide room URL and name as arguments.")
+        print("❌ No Daily.co meeting found.")
+    # if len(sys.argv) >= 3:
+    #     url = sys.argv[1]
+    #     room_name = sys.argv[2]
+    #     meeting_time_utc = datetime.now(timezone.utc)  # assume join now
+    #     join_daily(meeting_time_utc, url)
+    # else:
+    #     print("❌ Please provide room URL and name as arguments.")
