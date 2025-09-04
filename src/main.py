@@ -23,6 +23,8 @@ from services.send_message import send_email_with_attachments
 from pathlib import Path
 import subprocess
 import os
+from utils.pin_participant import pin_participant
+from utils.crop_ss import get_big_tile_crop
 from utils.api_utils import (
     get_next_daily_meeting as api_get_next_daily_meeting,
     get_active_participants as api_get_active_participants,
@@ -166,7 +168,7 @@ def join_daily(meeting_time_utc, meeting_url):
     session_ts_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         # No need for accept_downloads (we are not saving browser downloads)
         context = browser.new_context(permissions=["camera", "microphone", "midi", "midi-sysex"])
         page = context.new_page()
@@ -260,6 +262,7 @@ def join_daily(meeting_time_utc, meeting_url):
         daily_frame = iframe_element.content_frame() if iframe_element else None
 
         detection_active = True
+        pinned_once = False
 
         while time.time() - start_time < max_duration:
             try:
@@ -279,18 +282,39 @@ def join_daily(meeting_time_utc, meeting_url):
                                 print(f"📝 Recorded participant: {participant_name}")
                 else:
                     if detection_active:
-                        detection_active = False
+                        detection_active = False,
                         print("⏸️ Detection PAUSED - No participants in the meeting")
 
                 screenshot = page.screenshot(full_page=False)
                 cv_frame = cv2.imdecode(np.frombuffer(screenshot, np.uint8), cv2.IMREAD_COLOR)
                 if cv_frame is not None:
-                    face.detect_face(cv_frame)
-                    eye.track_eyes(cv_frame)
-                    mouth.monitor_mouth(cv_frame)
-                    multi.detect_multiple_faces(cv_frame)
-                    objects.detect_objects(cv_frame, visualize=True)
+                    big_tile_frame = get_big_tile_crop(page, daily_frame, iframe_element, cv_frame)
+                    if big_tile_frame is not None:
+                        face.detect_face(big_tile_frame)
+                        eye.track_eyes(big_tile_frame)
+                        mouth.monitor_mouth(big_tile_frame)
+                        multi.detect_multiple_faces(big_tile_frame)
+                        objects.detect_objects(big_tile_frame, visualize=True) 
+                    else:
+                        print("⚠️ Could not crop big tile; running detection on full frame")      
+                        face.detect_face(cv_frame)
+                        eye.track_eyes(cv_frame)
+                        mouth.monitor_mouth(cv_frame)
+                        multi.detect_multiple_faces(cv_frame)
+                        objects.detect_objects(cv_frame, visualize=True)
 
+                        
+
+
+                # Pin only once, and only when participants are present
+                if daily_frame and current_participants and not pinned_once:
+                    pinned = pin_participant(daily_frame)
+                    if pinned:
+                        print("✅ Successfully pinned participant")
+                        pinned_once = True
+                    else:
+                        print("⚠️ Could not pin any participant")
+                # Keep chat panel logic separate so it still opens each loop
                 if daily_frame:
                     try:
                         chat_button = daily_frame.query_selector("#chat-controls")
