@@ -1,6 +1,6 @@
 # interview_chatbot_assistant
 
-A modular Python application for monitoring and analyzing interview sessions using computer vision and audio detection. The system detects face presence, eye movement, mouth movement, multiple faces, forbidden objects, and audio events, generating comprehensive reports for each session.
+A modular Python application for monitoring and analyzing interview sessions using computer vision and audio detection. The system detects face presence, eye movement, multiple faces, forbidden objects, and audio events, generating comprehensive reports for each session.
 
 ## Features
 

@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 from screenshot_capture import ViolationCapturer
 from detection.face_detection import FaceDetector
 from detection.eye_tracking import EyeTracker
-from detection.mouth_detection import MouthMonitor
 from detection.multi_face import MultiFaceDetector
 from detection.object_detection import ObjectDetector
 from audio_detection import AudioMonitor
@@ -168,7 +167,7 @@ def join_daily(meeting_time_utc, meeting_url):
     session_ts_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         # No need for accept_downloads (we are not saving browser downloads)
         context = browser.new_context(permissions=["camera", "microphone", "midi", "midi-sysex"])
         page = context.new_page()
@@ -246,7 +245,7 @@ def join_daily(meeting_time_utc, meeting_url):
 
         face = FaceDetector(config);        face.set_alert_logger(logger)
         eye = EyeTracker(config);           eye.set_alert_logger(logger)
-        mouth = MouthMonitor(config);       mouth.set_alert_logger(logger)
+    
         multi = MultiFaceDetector(config);  multi.set_alert_logger(logger)
         objects = ObjectDetector(config);   objects.set_alert_logger(logger)
         audio_monitor.set_alert_logger(logger)
@@ -282,7 +281,7 @@ def join_daily(meeting_time_utc, meeting_url):
                                 print(f"📝 Recorded participant: {participant_name}")
                 else:
                     if detection_active:
-                        detection_active = False,
+                        detection_active = False
                         print("⏸️ Detection PAUSED - No participants in the meeting")
 
                 screenshot = page.screenshot(full_page=False)
@@ -292,14 +291,12 @@ def join_daily(meeting_time_utc, meeting_url):
                     if big_tile_frame is not None:
                         face.detect_face(big_tile_frame)
                         eye.track_eyes(big_tile_frame)
-                        mouth.monitor_mouth(big_tile_frame)
                         multi.detect_multiple_faces(big_tile_frame)
                         objects.detect_objects(big_tile_frame, visualize=True) 
                     else:
                         print("⚠️ Could not crop big tile; running detection on full frame")      
                         face.detect_face(cv_frame)
                         eye.track_eyes(cv_frame)
-                        mouth.monitor_mouth(cv_frame)
                         multi.detect_multiple_faces(cv_frame)
                         objects.detect_objects(cv_frame, visualize=True)
 

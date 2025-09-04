@@ -39,52 +39,52 @@ class AudioMonitor:
         """Set the alert logger for this audio monitor."""
         self.alert_logger = logger
 
-    def start(self):
-        """Start audio recording in a background thread."""
-        self.running = True
-        self.thread = threading.Thread(target=self._record, daemon=True)
-        self.thread.start()
+    # def start(self):
+    #     """Start audio recording in a background thread."""
+    #     self.running = True
+    #     self.thread = threading.Thread(target=self._record, daemon=True)
+    #     self.thread.start()
 
-    def stop(self):
-        """Signal to stop and wait for background recording thread to finish."""
-        self.running = False
-        if self.thread:
-            self.thread.join()
+    # def stop(self):
+    #     """Signal to stop and wait for background recording thread to finish."""
+    #     self.running = False
+    #     if self.thread:
+    #         self.thread.join()
 
-    def _record(self):
-        """Record audio continuously until manually stopped."""
-        print("🎙️ Audio recording started...")
-        p = pyaudio.PyAudio()
+    # def _record(self):
+    #     """Record audio continuously until manually stopped."""
+    #     print("🎙️ Audio recording started...")
+    #     p = pyaudio.PyAudio()
 
-        try:
-            stream = p.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=self.sample_rate,
-                input=True,
-                input_device_index=self.input_device_index,
-                frames_per_buffer=self.chunk_size
-            )
+    #     try:
+    #         stream = p.open(
+    #             format=pyaudio.paInt16,
+    #             channels=1,
+    #             rate=self.sample_rate,
+    #             input=True,
+    #             input_device_index=self.input_device_index,
+    #             frames_per_buffer=self.chunk_size
+    #         )
 
-            frames = []
+    #         frames = []
 
-            while self.running:
-                data = stream.read(self.chunk_size, exception_on_overflow=False)
-                frames.append(data)
+    #         while self.running:
+    #             data = stream.read(self.chunk_size, exception_on_overflow=False)
+    #             frames.append(data)
 
-            stream.stop_stream()
-            stream.close()
+    #         stream.stop_stream()
+    #         stream.close()
 
-            with wave.open(self.audio_file, 'wb') as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                wf.setframerate(self.sample_rate)
-                wf.writeframes(b''.join(frames))
+    #         with wave.open(self.audio_file, 'wb') as wf:
+    #             wf.setnchannels(1)
+    #             wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+    #             wf.setframerate(self.sample_rate)
+    #             wf.writeframes(b''.join(frames))
 
-            print(f"✅ Audio saved to: {self.audio_file}")
+    #         print(f"✅ Audio saved to: {self.audio_file}")
 
-        finally:
-            p.terminate()
+    #     finally:
+    #         p.terminate()
 
     def get_transcript_text(self):
         """Transcribe entire recorded audio after the meeting ends."""

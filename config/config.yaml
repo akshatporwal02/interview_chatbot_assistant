@@ -1,15 +1,3 @@
-video:
-  source: 0                   # 0 for default webcam
-  resolution: [1280, 720]
-  fps: 30
-  recording_path: "./recordings"
-
-screen:
-  monitor_index: 0           # 0 for primary monitor
-  fps: 15                    # Lower FPS for screen recording
-  recording: true            # Enable/disable screen recording
-
-
 detection:
   face:
     detection_interval: 5    # frames
@@ -19,8 +7,6 @@ detection:
     blink_threshold: 0.3       # EAR threshold for blink detection
     gaze_sensitivity: 15       # pixels threshold for gaze detection
     consecutive_frames: 2      # frames for gaze change detection
-  mouth:
-    movement_threshold: 3     # consecutive frames
   multi_face:
     alert_threshold: 3      # frames
   objects:
@@ -40,22 +26,17 @@ detection:
 logging:
   log_path: "./session_data/logs"
   alert_cooldown: 10          # seconds
-  alert_system:
-    voice_alerts: true  # Enable/disable voice alerts
-    alert_volume: 0.8   # Volume level (0.0 to 1.0)
-    cooldown: 10        # Minimum seconds between same alert
+
 
 
 global:
   output_path: "./reports"
 
-meeting:
-  auto_pin_candidate: true        # Automatically pin first candidate's screen
-  pin_delay: 3                   # Seconds to wait before attempting to pin
+                   # Seconds to wait before attempting to pin
 reporting:
   image_dir: "./reports/generated/images"  # New subdirectory for images
   output_dir: "./reports/generated"
-  wkhtmltopdf_path: "C:\\Users\\aksha\\OneDrive\\Desktop\\ICA\\interview_chatbot_assistant\\src\\report_generation\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+  wkhtmltopdf_path: "C:\\Users\\manas\\OneDrive\\Desktop\\Chatbot Assistant\\interview_chatbot_assistant\\src\\report_generation\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
   rating_thresholds:
     TOTAL VIOLATIONS:
        critical: 7
@@ -83,7 +64,6 @@ reporting:
   severity_levels:
     FACE_DISAPPEARED: 1
     GAZE_AWAY: 2
-    MOUTH_MOVING: 3
     MULTIPLE_FACES: 4
     OBJECT_DETECTED: 5
     AUDIO_DETECTED: 3

@@ -36,7 +36,6 @@ class ReportGenerator:
         self.severity_map = {
             'FACE_DISAPPEARED': 1,
             'GAZE_AWAY': 2,
-            'MOUTH_MOVING': 3,
             'MULTIPLE_FACES': 4,
             'OBJECT_DETECTED': 5,
             'AUDIO_DETECTED': 3
@@ -208,7 +207,6 @@ class ReportGenerator:
             'OBJECT_DETECTION_ERROR': 'Detection System Errors',
             'EYE_MOVEMENT': 'Eye Tracking Violations',
             'EYE_TRACKING_ERROR': 'Detection System Errors',
-            'MOUTH_MOVEMENT': 'Speech/Communication Violations',
             'AUDIO_DETECTED': 'Audio Violations',
             'MOVEMENT_DETECTED': 'Movement Violations',
             'SUSPICIOUS_ACTIVITY': 'Suspicious Activity',
