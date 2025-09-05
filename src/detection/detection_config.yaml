@@ -1,0 +1,55 @@
+detection:
+  face:
+    detection_interval: 5    # frames
+    min_confidence: 0.8
+  eye_tracking:
+    gaze_threshold: 2          # seconds
+    blink_threshold: 0.3       # EAR threshold for blink detection
+    gaze_sensitivity: 15       # pixels threshold for gaze detection
+    consecutive_frames: 2      # frames for gaze change detection
+  multi_face:
+    alert_threshold: 3      # frames
+  objects:
+    # Model and inference settings
+    model_path: "models/yolov8l.pt"   # relative to repo root (src/../models)
+    imgsz: 960                         # input size for YOLO
+    base_conf: 0.5                     # base confidence used by YOLO
+    iou: 0.6                           # NMS IoU threshold
+    augment: true                      # test-time augmentation for better recall
+
+    # Runtime throttling
+    detection_interval: 5              # frames between detections
+    max_fps: 5                         # max detection calls per second
+
+    # Global fallback confidence if per-class not defined
+    min_confidence: 0.65
+
+    # Class configuration (COCO IDS -> label)
+    class_map:
+      "73": "book"
+      "67": "cell phone"
+      "62": "tv"
+      "65": "remote"
+      "63": "laptop"
+
+    # Per-class thresholds (override base_conf/min_confidence)
+    class_thresholds:
+      "62": 0.85   # tv (strict)
+      "63": 0.85   # laptop
+      "65": 0.55   # remote
+      "67": 0.55   # cell phone
+      "73": 0.55   # book
+
+    # Special handling for TVs to reduce false positives
+    tv_class_id: 62
+    tv_min_area_frac: 0.015            # 1.5% of frame area
+
+    detection_interval: 5
+
+  audio_monitoring:
+    enabled: true
+    sample_rate: 16000
+    chunk_size: 4096
+    whisper_enabled: true  # Enable only when needed
+    whisper_model: "medium"
+    input_device_index: 2
