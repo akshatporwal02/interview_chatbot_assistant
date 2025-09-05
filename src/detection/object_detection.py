@@ -6,34 +6,23 @@ from datetime import datetime
 
 class ObjectDetector:
     def __init__(self, config):
+        # Use detection config provided by the caller (merged in main)
         self.config = config['detection']['objects']
         self.model = None
 
-        # Target COCO classes mapped to human-readable labels
-        self.class_map = {
-            73: 'book',
-            67: 'cell phone',
-            62: 'tv',
-            65: 'remote',
-            63: 'laptop'
-        }
+        # Load class map and thresholds from config (keys may be strings in YAML)
+        raw_class_map = self.config.get('class_map', {})
+        self.class_map = {int(k): v for k, v in raw_class_map.items()}
 
-        # Per-class confidence thresholds to balance recall vs precision
-        # Make 'tv' stricter to avoid false positives on rectangular objects
-        self.class_thresholds = {
-            62: 0.85,  # tv (strict)
-            63: 0.85,  # laptop
-            65: 0.55,  # remote
-            67: 0.55,  # cell phone
-            73: 0.55   # book
-        }
+        raw_thresh = self.config.get('class_thresholds', {})
+        self.class_thresholds = {int(k): float(v) for k, v in raw_thresh.items()}
 
-        # Additional filter: require TVs to occupy at least a small fraction of the frame
-        # This helps ignore tiny rectangles falsely detected as TVs
-        self.tv_min_area_frac = 0.015  # 1.5% of the frame area
+        # Special handling for TV minimum area fraction
+        self.tv_class_id = int(self.config.get('tv_class_id'))
+        self.tv_min_area_frac = float(self.config.get('tv_min_area_frac'))
 
         self.alert_logger = None
-        self.detection_interval = self.config['detection_interval']
+        self.detection_interval = int(self.config.get('detection_interval'))
         self.frame_count = 0
         self._initialize_model()
         self.last_detection_time = datetime.now()
@@ -41,18 +30,20 @@ class ObjectDetector:
     def _initialize_model(self):
         """Initialize optimized YOLO model"""
         try:
-            # Load model
-            self.model = YOLO('models/yolov8l.pt')
+            # Load model with absolute path to avoid CWD issues
+            from pathlib import Path
+            model_cfg = self.config.get('model_path', 'models/yolov8l.pt')
+            # If config path is relative, resolve relative to repo root (src/..)
+            model_path = Path(__file__).resolve().parents[1] / model_cfg if not Path(model_cfg).is_absolute() else Path(model_cfg)
+            self.model = YOLO(str(model_path))
 
-            # Optimize model settings
+            # Optimize model settings from config
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            imgsz = 960  # higher resolution to improve far/partial detections
-
-            # Use a permissive base conf; final filtering via per-class thresholds
-            self.model.overrides['conf'] = 0.50
+            imgsz = int(self.config.get('imgsz', 960))
+            self.model.overrides['conf'] = float(self.config.get('base_conf'))
             self.model.overrides['device'] = device
             self.model.overrides['imgsz'] = imgsz
-            self.model.overrides['iou'] = 0.60
+            self.model.overrides['iou'] = float(self.config.get('iou'))
 
             # Restrict predictions to only our target classes to reduce noise
             self.model.overrides['classes'] = list(self.class_map.keys())
@@ -85,7 +76,8 @@ class ObjectDetector:
             orig_h, orig_w = frame.shape[:2]
 
             # Run inference; augment helps on partial occlusions (slower but better recall)
-            results = self.model(frame, verbose=False, augment=True)
+            use_tta = bool(self.config.get('augment', True))
+            results = self.model(frame, verbose=False, augment=use_tta)
 
             detected = False
             for result in results:
@@ -95,10 +87,10 @@ class ObjectDetector:
 
                     if cls in self.class_map:
                         # Choose per-class threshold; fallback to config if not found
-                        min_conf = self.class_thresholds.get(cls, self.config['min_confidence'])
+                        min_conf = self.class_thresholds.get(cls, float(self.config.get('min_confidence', 0.65)))
                         if conf >= min_conf:
                             # Additional TV size filter to reduce spurious tiny detections
-                            if cls == 62:  # tv
+                            if cls == self.tv_class_id:
                                 x1, y1, x2, y2 = box.xyxy[0]
                                 w = float(x2 - x1)
                                 h = float(y2 - y1)

@@ -33,13 +33,7 @@ class ReportGenerator:
         self.logger.setLevel(logging.INFO)
         
         # Severity mapping
-        self.severity_map = {
-            'FACE_DISAPPEARED': 1,
-            'GAZE_AWAY': 2,
-            'MULTIPLE_FACES': 4,
-            'OBJECT_DETECTED': 5,
-            'AUDIO_DETECTED': 3
-        }
+        self.severity_map = self.config.get('severity_levels', {})
 
     def generate_report(self, student_info, violations, candidate_analysis=None,
                        interviewer_analysis=None, decision=None,
@@ -231,6 +225,9 @@ class ReportGenerator:
         try:
             times, severities, labels = [], [], []
             for v in violations:
+                v_type = v['type']
+                if v_type == "FACE_REAPPEARED":
+                   continue
                 t = datetime.strptime(v['timestamp'], "%Y-%m-%d_%H:%M:%S")
                 times.append(t)
                 severities.append(self.severity_map.get(v['type'], 1))
@@ -242,7 +239,7 @@ class ReportGenerator:
                 plt.annotate(label, (time, sev), textcoords="offset points",
                              xytext=(0, 10), ha='center', fontsize=8)
 
-            plt.title(f"Violation Timeline - {student_id}")
+            plt.title(f"Violation Timeline")
             plt.xlabel("Time")
             plt.ylabel("Severity Level")
             plt.grid(True, linestyle='--', alpha=0.7)

@@ -180,6 +180,16 @@ def join_daily(meeting_time_utc, meeting_url):
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
+        # Override detection config from separate detection_config.yaml if available
+        det_config_path = project_root / "src" / "detection" / "detection_config.yaml"
+        try:
+            with open(det_config_path, 'r', encoding='utf-8') as df:
+                det_cfg = yaml.safe_load(df) or {}
+                if 'detection' in det_cfg:
+                    config['detection'] = det_cfg['detection']
+        except FileNotFoundError:
+            print("\u26a0\ufe0f detection_config.yaml not found, using detection config from config.yaml")
+
         audio_monitor = AudioMonitor(config, room_name, session_ts_str)
 
         try:
@@ -483,59 +493,7 @@ def join_daily(meeting_time_utc, meeting_url):
 
         else:
             print("⚠️ No participants found, generating default report")
-            # student = {
-            #     'id': '',
-            #     'name': 'No Participant',
-            #     'email': ''
-            # }
-
-            # # Ensure status and evaluation show for no-participant sessions
-            # if not candidate_analysis:
-            #     candidate_analysis = [
-            #         {"criteria": "Communication Skills", "value": "N/A", "score": None, "explanation": ""},
-            #         {"criteria": "Technical Skills", "value": "N/A", "score": None, "explanation": ""},
-            #         {"criteria": "Attitude", "value": "N/A", "score": None, "explanation": ""},
-            #         {"criteria": "Overall Remark", "value": "N/A", "score": None, "explanation": ""},
-            #     ]
-            # if not interviewer_analysis:
-            #     interviewer_analysis = [
-            #         {"aspect": "Questions Asked", "value": "N/A", "description": ""},
-            #         {"aspect": "Difficulty Level", "value": "N/A", "description": ""},
-            #         {"aspect": "Attitude", "value": "N/A", "description": ""},
-            #     ]
-            # if not decision or not decision.get("recommendation"):
-            #     decision = {"recommendation": "No Show", "summary": "No participants joined the session."}
-
-            # report_gen = ReportGenerator(config)
-
-            # # Ensure meeting_info carries room + session for consistent naming
-            # meeting_info = meeting_info or {}
-            # meeting_info.setdefault('room_name', room_name)
-            # meeting_info.setdefault('session_timestamp', session_ts_str)
-
-            # report_path = report_gen.generate_report(
-            #     student,
-            #     violations,
-            #     candidate_analysis=candidate_analysis,
-            #     interviewer_analysis=interviewer_analysis,
-            #     decision=decision,
-            #     transcript_text=llm_analysis,
-            #     meeting_info=meeting_info
-            # )
-            # if report_path:
-            #     print(f"📄 Default report saved: {report_path}")
-            #     # try:
-            #     #     send_email_with_attachments(
-            #     #           report_path=report_path,
-            #     #           student_name=student['name'],
-            #     #           receiver_email='',
-            #     #           room_name=room_name
-            #     #           )
-            #     # except Exception as e:
-            #     #           print(f"❌ Failed to send email for {student['name']}: {e}")
-
-            # else:
-            #     print("❌ Default report generation failed")
+           
 
 # =======================
 #           MAIN
