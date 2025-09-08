@@ -11,7 +11,7 @@ detection:
     alert_threshold: 3      # frames
   objects:
     # Model and inference settings
-    model_path: "models/yolov8l.pt"   # relative to repo root (src/../models)
+    model_path: "models/yolov8l.pt"   # relative to repo root (code/../models)
     imgsz: 960                         # input size for YOLO
     base_conf: 0.5                     # base confidence used by YOLO
     iou: 0.6                           # NMS IoU threshold
@@ -43,9 +43,7 @@ detection:
     # Special handling for TVs to reduce false positives
     tv_class_id: 62
     tv_min_area_frac: 0.015            # 1.5% of frame area
-
-    detection_interval: 5
-
+    
   audio_monitoring:
     enabled: true
     sample_rate: 16000

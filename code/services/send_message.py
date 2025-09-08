@@ -56,7 +56,7 @@ Concret.io Team"""
     # Find and attach transcript file
     try:
         project_root = Path(__file__).resolve().parents[2]
-        transcripts_glob = str(project_root / "src" / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
+        transcripts_glob = str(project_root / "code" / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
         transcript_files = sorted(glob(transcripts_glob))
         if transcript_files:
             transcript_path = transcript_files[-1]  # Get the most recent one
@@ -74,7 +74,7 @@ Concret.io Team"""
     # Find and attach log file
     try:
         project_root = Path(__file__).resolve().parents[2]
-        logs_glob = str(project_root / "src" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
+        logs_glob = str(project_root / "code" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
         log_files = sorted(glob(logs_glob))
         if log_files:
             log_path = log_files[-1]  # Get the most recent one

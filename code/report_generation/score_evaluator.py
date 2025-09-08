@@ -196,9 +196,9 @@ def parse_llm_response(llm_response: str):
 def analyze_transcript(room_name: str) -> str:
     try:
         project_root = Path(__file__).resolve().parents[2]  # repo root
-        transcripts_glob = str(project_root / "src" / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
+        transcripts_glob = str(project_root / "code" / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
         print("Project root:", project_root)
-        logs_glob = str(project_root / "src" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
+        logs_glob = str(project_root / "code" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
         transcript_files = sorted(glob(transcripts_glob))
         logs_files = sorted(glob(logs_glob))
 

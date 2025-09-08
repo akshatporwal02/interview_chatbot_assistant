@@ -9,7 +9,7 @@ global:
 reporting:
    image_dir: "./reports/generated/images"  # New subdirectory for images
    output_dir: "./reports/generated"
-   wkhtmltopdf_path: "C:\\Users\\manas\\OneDrive\\Desktop\\Chatbot Assistant\\interview_chatbot_assistant\\src\\report_generation\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+   wkhtmltopdf_path: "C:\\Users\\aksha\\OneDrive\\Desktop\\ICA\\interview_chatbot_assistant\\code\\report_generation\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
    rating_thresholds:
       TOTAL VIOLATIONS:
          critical: 7

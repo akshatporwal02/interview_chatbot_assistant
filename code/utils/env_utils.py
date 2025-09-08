@@ -4,7 +4,7 @@ from typing import Optional
 
 
 def _repo_root_from_utils() -> Path:
-    # utils -> src -> repo root
+    # utils -> code -> repo root
     return Path(__file__).resolve().parents[2]
 
 

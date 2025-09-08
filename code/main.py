@@ -14,7 +14,7 @@ from detection.face_detection import FaceDetector
 from detection.eye_tracking import EyeTracker
 from detection.multi_face import MultiFaceDetector
 from detection.object_detection import ObjectDetector
-from audio_detection import AudioMonitor
+from transcript_generator import AudioMonitor
 from report_generation.report_generator import ReportGenerator
 from services.alerts import AlertLog
 from report_generation.score_evaluator import analyze_transcript, parse_llm_response
@@ -175,13 +175,13 @@ def join_daily(meeting_time_utc, meeting_url):
         vercel_ui_url = "https://concretiomeet.vercel.app/"
         page.goto(vercel_ui_url)
         print("✅ Opened custom Vercel-hosted UI")
-        project_root = Path(__file__).resolve().parents[1]  # goes from src/ to repo root
+        project_root = Path(__file__).resolve().parents[1]  # goes from code/ to repo root
         config_path = project_root / "config" / "config.yaml"
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
         # Override detection config from separate detection_config.yaml if available
-        det_config_path = project_root / "src" / "detection" / "detection_config.yaml"
+        det_config_path = project_root / "code" / "detection" / "detection_config.yaml"
         try:
             with open(det_config_path, 'r', encoding='utf-8') as df:
                 det_cfg = yaml.safe_load(df) or {}
@@ -428,7 +428,7 @@ def join_daily(meeting_time_utc, meeting_url):
         if wav_path and wav_path.exists():
             print(f"📝 Transcribing audio from {wav_path} using faster-whisper via AudioMonitor...")
             # Reuse your AudioMonitor to keep a single implementation
-            audio_monitor.audio_file = str(wav_path)
+            audio_monitor.audio_file = str(wav_path) 
             transcript_text = audio_monitor.get_transcript_text()
             # print(f"🗒️ Transcript excerpt: {transcript_text[:200]}...")
         else:

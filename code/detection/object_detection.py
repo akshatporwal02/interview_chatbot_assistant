@@ -33,7 +33,7 @@ class ObjectDetector:
             # Load model with absolute path to avoid CWD issues
             from pathlib import Path
             model_cfg = self.config.get('model_path', 'models/yolov8l.pt')
-            # If config path is relative, resolve relative to repo root (src/..)
+            # If config path is relative, resolve relative to repo root (code/..)
             model_path = Path(__file__).resolve().parents[1] / model_cfg if not Path(model_cfg).is_absolute() else Path(model_cfg)
             self.model = YOLO(str(model_path))
 
