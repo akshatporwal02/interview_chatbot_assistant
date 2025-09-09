@@ -1,6 +1,5 @@
 import pyaudio
 import wave
-import threading
 from datetime import datetime
 from faster_whisper import WhisperModel
 import os
@@ -25,14 +24,9 @@ class AudioMonitor:
         # Generate session timestamp for unique file naming
         self.session_timestamp = session_timestamp or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        self.running = False
-        self.thread = None
+        
         self.transcript_log = ""
-        self.alert_logger = None
-
-    def set_alert_logger(self, logger):
-        """Set the alert logger for this audio monitor."""
-        self.alert_logger = logger
+        
 
 
     def get_transcript_text(self):

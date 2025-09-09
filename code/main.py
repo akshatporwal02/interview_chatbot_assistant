@@ -6,7 +6,13 @@ import pytz
 import yaml
 import sys
 from datetime import datetime, timezone
-from playwright.sync_api import sync_playwright
+from automation.browser_session import BrowserSession
+from automation.navigation import open_ui_url, ensure_ui_ready, get_daily_frame, get_daily_iframe
+from automation.join_flow import fill_room_and_join
+from automation.recording_controls import start_recording_if_possible, stop_recording_and_leave
+from automation.chat import ensure_chat_open, send_chat_message
+from automation.screenshots import take_screenshot
+from automation.participants import pin_participant
 import requests
 from urllib.parse import urlparse
 from screenshot_capture import ViolationCapturer
@@ -16,20 +22,18 @@ from detection.multi_face import MultiFaceDetector
 from detection.object_detection import ObjectDetector
 from transcript_generator import AudioMonitor
 from report_generation.report_generator import ReportGenerator
-from services.alerts import AlertLog
+from services.alerts import AlertLogger
 from report_generation.score_evaluator import analyze_transcript, parse_llm_response
 from services.send_message import send_email_with_attachments
 from pathlib import Path
 import subprocess
 import os
-from utils.pin_participant import pin_participant
 from utils.crop_ss import get_big_tile_crop
 from utils.api_utils import (
     get_next_daily_meeting as api_get_next_daily_meeting,
     get_active_participants as api_get_active_participants,
     get_meeting_details as api_get_meeting_details,
 )
-# centralized utils (lift-and-shift, same behavior)
 from utils.time_utils import utc_to_ist
 from utils.api_utils import (
     get_daily_headers,
@@ -39,61 +43,15 @@ from utils.api_utils import (
 )
 from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video, fetch_cloud_recording_wav as util_fetch_cloud_recording_wav
 
-
-#    CONFIG / CONSTANTS
-
 from utils.env_utils import load_dotenv, get_daily_api_key
-load_dotenv()  # load .env at repo root if present
+load_dotenv()
 DAILY_API_KEY = get_daily_api_key()
 DAILY_API_BASE = "https://api.daily.co/v1"
 HEADERS = {"Authorization": f"Bearer {DAILY_API_KEY}"} if DAILY_API_KEY else {}
 
-#     TIMEZONE HELPERS
-
 def utc_to_ist(utc_dt):
     ist = pytz.timezone("Asia/Kolkata")
     return utc_dt.astimezone(ist)
-
-
-#        LOGGER
-
-class AlertLogger:
-    def __init__(self, chat_queue=None, capturer=None, violations_list=None, file_logger=None):
-        self.chat_queue = chat_queue
-        self.capturer = capturer
-        self.violations_list = violations_list
-        self.file_logger = file_logger
-
-    def log_alert(self, alert_type, message, frame=None):
-        display_type = alert_type.replace('_', ' ')
-        alert_text = f"⚠️ {display_type} {message}"
-        print(alert_text)
-
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-        image_path = None
-
-        if frame is not None and self.capturer:
-            result = self.capturer.capture_violation(frame, alert_type, timestamp)
-            image_path = result.get('image_path')
-
-        if self.violations_list is not None:
-            self.violations_list.append({
-                'type': alert_type,
-                'timestamp': timestamp,
-                'message': message,
-                'image_path': image_path
-            })
-
-        # Write to file using AlertLog
-        if self.file_logger:
-            self.file_logger.log_alert(alert_type, message)
-
-        if self.chat_queue:
-            self.chat_queue.put(alert_text)
-
-
-#   DAILY API HELPERS
-
 
 def get_next_daily_meeting():
     return api_get_next_daily_meeting(HEADERS)
@@ -116,14 +74,9 @@ def get_meeting_details(room_name):
         return None
 
 def list_recordings():
-    """Return list of all recordings (Daily cloud)."""
     return api_list_recordings(HEADERS)
 
 def get_latest_recording_for_room(room_name):
-    """
-    Return the most recent recording dict for a room (or None if not found).
-    Recording fields we rely on: id, room_name, created_at
-    """
     try:
         return api_get_latest_recording_for_room(room_name, HEADERS)
     except Exception as e:
@@ -131,25 +84,13 @@ def get_latest_recording_for_room(room_name):
         return None
 
 def get_recording_access_link(recording_id):
-    """
-    Get an access (download) link for a recording.
-    Response may have 'download_link' or 'url' depending on account/config.
-    """
     return api_get_recording_access_link(recording_id, HEADERS)
 
 def download_file(url, dest_path: Path):
-    """Stream download to dest_path."""
     return util_download_file(url, dest_path)
 
-
-#   MEDIA UTIL HELPERS
-
 def extract_audio_from_video(video_path: Path, audio_path: Path):
-    """Extract PCM 16k mono WAV using ffmpeg."""
     return util_extract_audio_from_video(video_path, audio_path)
-
-
-#   JOIN & MONITOR FLOW
 
 def join_daily(meeting_time_utc, meeting_url):
     now_utc = datetime.now(timezone.utc)
@@ -166,21 +107,17 @@ def join_daily(meeting_time_utc, meeting_url):
 
     session_ts_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        # No need for accept_downloads (we are not saving browser downloads)
-        context = browser.new_context(permissions=["camera", "microphone", "midi", "midi-sysex"])
-        page = context.new_page()
+    with BrowserSession(headless=True, permissions=["camera", "microphone", "midi", "midi-sysex"]) as session:
+        page = session.page
 
         vercel_ui_url = "https://concretiomeet.vercel.app/"
-        page.goto(vercel_ui_url)
+        open_ui_url(page, vercel_ui_url)
         print("✅ Opened custom Vercel-hosted UI")
-        project_root = Path(__file__).resolve().parents[1]  # goes from code/ to repo root
+        project_root = Path(__file__).resolve().parents[1]
         config_path = project_root / "config" / "config.yaml"
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
-        # Override detection config from separate detection_config.yaml if available
         det_config_path = project_root / "code" / "detection" / "detection_config.yaml"
         try:
             with open(det_config_path, 'r', encoding='utf-8') as df:
@@ -193,82 +130,45 @@ def join_daily(meeting_time_utc, meeting_url):
         audio_monitor = AudioMonitor(config, room_name, session_ts_str)
 
         try:
-            page.wait_for_selector('input[placeholder*="Enter room name"]', timeout=10000)
-            page.fill('input[placeholder*="Enter room name"]', meeting_url)
-            print("✅ Filled Daily URL")
+            ensure_ui_ready(page)
+            fill_room_and_join(page, get_daily_frame(page), meeting_url, username="Observer Bot")
+            print("✅ Joined Daily room via automation module")
 
-            page.click('button:has-text("Join Room")')
-            print("✅ Clicked Join Room")
-
-            page.wait_for_timeout(5000)
-            page.wait_for_selector("iframe", timeout=10000)
-
-            iframe_element = page.query_selector("iframe")
-            frame = iframe_element.content_frame()
-
-            frame.wait_for_selector("input#username", timeout=10000)
-            frame.fill("input#username", "Observer Bot")
-            print("✅ Filled name inside iframe")
-
-            frame.wait_for_selector('button:has-text("Continue")', timeout=10000)
-            frame.click('button:has-text("Continue")')
-            print("✅ Clicked Continue")
-
-            frame.wait_for_selector('button:has-text("Join")', timeout=10000)
-            frame.click('button:has-text("Join")')
-            print("✅ Clicked Join inside Daily iframe")
-
+            frame = get_daily_frame(page)
             try:
                 frame.wait_for_selector('#btn-leave', timeout=15000)
                 print('✅ Detected in-call UI; recording controls available')
             except Exception:
                 print('⚠️ Could not confirm in-call UI; proceeding')
 
-            # Try to start cloud recording via UI so Daily stores it in cloud
-            try:
-                rec_btn = frame.query_selector('#record-controls')
-                print(f"Recording button found: {rec_btn}")
-                if rec_btn and rec_btn.is_enabled():
-                    rec_btn.click()
-                    print('⏺️ In-call UI recording button pressed')
-                    start_btn = frame.wait_for_selector('button:has-text("Start recording")', timeout=5000)
-                    if start_btn and start_btn.is_enabled():
-                        start_btn.click()
-                        print('▶️ "Start recording" confirmation button pressed (cloud)')
-                    else:
-                        print('⚠️ "Start recording" button not found or not enabled')
-            except Exception as e:
-                print(f'⚠️ Could not click in-call recording button: {e}')
-
+            start_recording_if_possible(frame)
             print("🕒 Staying in the meeting for monitoring...")
 
         except Exception as e:
             print(f"⚠️ Failed to interact with UI: {e}")
             return
 
-        # ✅ STEP 4: Monitoring Begins
         chat_queue = queue.Queue()
         violations = []
         capturer = ViolationCapturer(config)
-        logging = AlertLog(config, room_name)
-        logger = AlertLogger(chat_queue, capturer, violations, logging)
+        logger = AlertLogger(config, room_name, chat_queue, capturer, violations)
+
 
         face = FaceDetector(config);        face.set_alert_logger(logger)
         eye = EyeTracker(config);           eye.set_alert_logger(logger)
-    
         multi = MultiFaceDetector(config);  multi.set_alert_logger(logger)
         objects = ObjectDetector(config);   objects.set_alert_logger(logger)
-        audio_monitor.set_alert_logger(logger)
+        # audio_monitor.set_alert_logger(logger)
 
         start_time = time.time()
         max_duration = 3600
         meeting_participants = []
         last_participant_check = 0
         everyone_left_time = None
-        wait_duration = 10  # seconds after everyone leaves
+        wait_duration = 10
 
-        iframe_element = page.query_selector("iframe")
-        daily_frame = iframe_element.content_frame() if iframe_element else None
+        iframe_element = get_daily_iframe(page)
+        daily_frame = get_daily_frame(page) if iframe_element else None
 
         detection_active = True
         pinned_once = False
@@ -294,7 +194,7 @@ def join_daily(meeting_time_utc, meeting_url):
                         detection_active = False
                         print("⏸️ Detection PAUSED - No participants in the meeting")
 
-                screenshot = page.screenshot(full_page=False)
+                screenshot = take_screenshot(page, full_page=False)
                 cv_frame = cv2.imdecode(np.frombuffer(screenshot, np.uint8), cv2.IMREAD_COLOR)
                 if cv_frame is not None:
                     big_tile_frame = get_big_tile_crop(page, daily_frame, iframe_element, cv_frame)
@@ -302,18 +202,14 @@ def join_daily(meeting_time_utc, meeting_url):
                         face.detect_face(big_tile_frame)
                         eye.track_eyes(big_tile_frame)
                         multi.detect_multiple_faces(big_tile_frame)
-                        objects.detect_objects(big_tile_frame, visualize=True) 
+                        objects.detect_objects(big_tile_frame, visualize=True)
                     else:
-                        print("⚠️ Could not crop big tile; running detection on full frame")      
+                        print("⚠️ Could not crop big tile; running detection on full frame")
                         face.detect_face(cv_frame)
                         eye.track_eyes(cv_frame)
                         multi.detect_multiple_faces(cv_frame)
                         objects.detect_objects(cv_frame, visualize=True)
 
-                        
-
-
-                # Pin only once, and only when participants are present
                 if daily_frame and current_participants and not pinned_once:
                     pinned = pin_participant(daily_frame)
                     if pinned:
@@ -321,31 +217,12 @@ def join_daily(meeting_time_utc, meeting_url):
                         pinned_once = True
                     else:
                         print("⚠️ Could not pin any participant")
-                # Keep chat panel logic separate so it still opens each loop
-                if daily_frame:
-                    try:
-                        chat_button = daily_frame.query_selector("#chat-controls")
-                        if chat_button:
-                            is_expanded = chat_button.get_attribute("aria-expanded")
-                            if is_expanded == "false":
-                                chat_button.click()
-                                time.sleep(1)
-                    except Exception as e:
-                        print(f"⚠️ Failed to open chat panel: {e}")
 
+                ensure_chat_open(daily_frame)
                 while not chat_queue.empty():
                     msg = chat_queue.get()
-                    if daily_frame:
-                        try:
-                            chat_input = daily_frame.query_selector("textarea")
-                            if chat_input:
-                                chat_input.fill(msg)
-                                chat_input.press("Enter")
-                                print(f"📤 Alert sent: {msg}")
-                        except Exception as e:
-                            print(f"Chat error: {e}")
-                    else:
-                        print(f"⚠️ Cannot send message - iframe not available: {msg}")
+                    send_chat_message(daily_frame, msg)
+                    print(f"📤 Alert sent: {msg}")
 
                 current_participants_for_leaving = get_active_participants(room_name)
                 if not current_participants_for_leaving:
@@ -373,27 +250,8 @@ def join_daily(meeting_time_utc, meeting_url):
                             time.sleep(2)
                             if daily_frame:
                                 try:
-                                    # Open stop recording menu
-                                    rec_btn = daily_frame.query_selector('#record-controls')
-                                    if rec_btn and rec_btn.is_enabled():
-                                        rec_btn.click()
-                                        print("⏹️ In-call UI recording button pressed to open stop menu")
-                                        stop_btn = daily_frame.wait_for_selector('button:has-text("Stop recording")', timeout=5000)
-                                        if stop_btn and stop_btn.is_enabled():
-                                            stop_btn.click()
-                                            print('🛑 "Stop recording" confirmation button pressed (cloud)')
-                                            # No browser download expected — cloud handles it
-                                        else:
-                                            print('⚠️ "Stop recording" button not found or not enabled')
-                                    else:
-                                        print("⚠️ Recording button not found or not enabled.")
-
-                                    leave_button = daily_frame.query_selector("#btn-leave")
-                                    if leave_button:
-                                        leave_button.click()
-                                        print("✅ Bot left the meeting after 1-minute wait.")
-                                    else:
-                                        print("⚠️ Leave button not found.")
+                                    stop_recording_and_leave(daily_frame)
+                                    print("✅ Bot left the meeting after 1-minute wait.")
                                 except Exception as e:
                                     print(f"⚠️ Failed to click stop/leave: {e}")
                             break
@@ -408,44 +266,32 @@ def join_daily(meeting_time_utc, meeting_url):
                 break
 
         page.wait_for_timeout(2000)
-        browser.close()
+        session.browser.close()
         if not meeting_participants:
             print("As there were no participants in the session, report generation was not applicable.")
             return
 
-        # ============================================
-        #   FETCH CLOUD RECORDING → EXTRACT → TRANSCRIBE
-        # ============================================
         transcript_text = None
 
         print("📥 Fetching cloud recording & extracting audio...")
         poll_cfg = config.get('recording', {})
         poll_total = int(poll_cfg.get('poll_total_secs', 180))
         poll_interval = int(poll_cfg.get('poll_interval_secs', 6))
-        # wav_path = fetch_cloud_recording_wav(room_name)
         wav_path = util_fetch_cloud_recording_wav(room_name, HEADERS, poll_total, poll_interval)
 
         if wav_path and wav_path.exists():
             print(f"📝 Transcribing audio from {wav_path} using faster-whisper via AudioMonitor...")
-            # Reuse your AudioMonitor to keep a single implementation
-            audio_monitor.audio_file = str(wav_path) 
+            audio_monitor.audio_file = str(wav_path)
             transcript_text = audio_monitor.get_transcript_text()
-            # print(f"🗒️ Transcript excerpt: {transcript_text[:200]}...")
         else:
             print(f"❌ Could not fetch or process cloud recording for room: {room_name}")
 
-        # ==========================
-        #   Transcript + LLM Analysis
-        # ==========================
         print("🤖 Analyzing transcript with LLM...")
         llm_analysis = analyze_transcript(room_name)
         print("✅ LLM analysis complete.")
 
         candidate_analysis, interviewer_analysis, decision = parse_llm_response(llm_analysis)
 
-        # ==========================
-        #   Reporting
-        # ==========================
         if meeting_participants:
             print(f"📊 Generating reports for {len(meeting_participants)} participant(s)")
             for person in meeting_participants:
@@ -461,7 +307,6 @@ def join_daily(meeting_time_utc, meeting_url):
 
                 report_gen = ReportGenerator(config)
 
-                # Ensure meeting_info carries room + session for consistent naming
                 meeting_info = meeting_info or {}
                 meeting_info.setdefault('room_name', room_name)
                 meeting_info.setdefault('session_timestamp', session_ts_str)
@@ -493,11 +338,7 @@ def join_daily(meeting_time_utc, meeting_url):
 
         else:
             print("⚠️ No participants found, generating default report")
-           
 
-# =======================
-#           MAIN
-# =======================
 if __name__ == "__main__":
     t, url = get_next_daily_meeting()
     if t and url:
