@@ -44,6 +44,7 @@ from utils.api_utils import (
 from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video, fetch_cloud_recording_wav as util_fetch_cloud_recording_wav
 
 from utils.env_utils import load_dotenv, get_daily_api_key
+from utils.terminal_log import init_terminal_logging
 load_dotenv()
 DAILY_API_KEY = get_daily_api_key()
 DAILY_API_BASE = "https://api.daily.co/v1"
@@ -133,6 +134,8 @@ def join_daily(meeting_time_utc, meeting_url):
             ensure_ui_ready(page)
             fill_room_and_join(page, get_daily_frame(page), meeting_url, username="Observer Bot")
             print("✅ Joined Daily room via automation module")
+            join_time_ist = utc_to_ist(datetime.now(timezone.utc))
+            print(f"🕒 Bot JOINED meeting at: {join_time_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
 
             frame = get_daily_frame(page)
             try:
@@ -252,6 +255,8 @@ def join_daily(meeting_time_utc, meeting_url):
                                 try:
                                     stop_recording_and_leave(daily_frame)
                                     print("✅ Bot left the meeting after 1-minute wait.")
+                                    leave_time_ist = utc_to_ist(datetime.now(timezone.utc))
+                                    print(f"🕒 Bot LEFT meeting at: {leave_time_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
                                 except Exception as e:
                                     print(f"⚠️ Failed to click stop/leave: {e}")
                             break
@@ -266,7 +271,7 @@ def join_daily(meeting_time_utc, meeting_url):
                 break
 
         page.wait_for_timeout(2000)
-        session.browser.close()
+        # session.browser.close()
         if not meeting_participants:
             print("As there were no participants in the session, report generation was not applicable.")
             return
@@ -294,6 +299,14 @@ def join_daily(meeting_time_utc, meeting_url):
 
         if meeting_participants:
             print(f"📊 Generating reports for {len(meeting_participants)} participant(s)")
+            # Find interviewer (concret.io) ID
+            interviewer_id = None
+            for p in meeting_participants:
+                uname = (p.get("userName") or "").strip().lower()
+                if uname == "concret.io":
+                    interviewer_id = p.get("id")
+                    break
+
             for person in meeting_participants:
                 username = person.get("userName", "Unknown")
                 if username.strip().lower() == "concret.io":
@@ -302,7 +315,8 @@ def join_daily(meeting_time_utc, meeting_url):
                 student = {
                     'id': person.get("id") or datetime.now().strftime('%Y%m%d%H%M%S'),
                     'name': person.get("userName", "Unknown"),
-                    'email': f'{person.get("userName", "unknown").lower().replace(" ", "")}@example.com'
+                    'email': f'{person.get("userName", "unknown").lower().replace(" ", "")}@example.com',
+                    'interviewer_name': interviewer_id or ''
                 }
 
                 report_gen = ReportGenerator(config)
@@ -342,12 +356,15 @@ def join_daily(meeting_time_utc, meeting_url):
 if __name__ == "__main__":
     t, url = get_next_daily_meeting()
     if t and url:
+        room_name = urlparse(url).path.lstrip("/") or "session"
+        log_path = init_terminal_logging(room_name)
         join_daily(t, url)
     else:
         print("❌ No Daily.co meeting found.")
     # if len(sys.argv) >= 3:
     #     url = sys.argv[1]
     #     room_name = sys.argv[2]
+        # log_path = init_terminal_logging(room_name)
     #     meeting_time_utc = datetime.now(timezone.utc)  # assume join now
     #     join_daily(meeting_time_utc, url)
     # else:

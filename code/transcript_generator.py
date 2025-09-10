@@ -9,8 +9,8 @@ import time
 class AudioMonitor:
     def __init__(self, config, room_name=None, session_timestamp: str | None = None):
         self.config = config['detection']['audio_monitoring']
-        self.sample_rate = self.config['sample_rate']
-        self.chunk_size = self.config['chunk_size']
+        # self.sample_rate = self.config['sample_rate']
+        # self.chunk_size = self.config['chunk_size']
         self.recording_dir = "./session_data/recordings"
         os.makedirs(self.recording_dir, exist_ok=True)
         

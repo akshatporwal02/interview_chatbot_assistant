@@ -23,7 +23,7 @@ def is_meeting_ongoing(room_name):
 def launch_room_bot(room_url, room_name):
     if os.name == "nt":  # Windows
         subprocess.Popen(
-            ["start", "cmd", "/k", "python", "main.py", room_url, room_name],
+            ["start","/MIN", "cmd", "/c", "python", "main.py", room_url, room_name],
             shell=True
         )
     else:  # macOS / Linux

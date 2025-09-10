@@ -99,35 +99,3 @@ Concret.io Team"""
             print(f"📎 Total attachments sent: {attachments_count}")
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
-
-# Keep the old function for backward compatibility
-# def send_email_with_pdf(report_path, student_name, receiver_email):
-#     """
-#     Legacy function - sends only PDF report
-#     For backward compatibility only
-#     """
-#     sender_email = "akshatporwal022003@gmail.com"
-#     app_password = "agmp myvy ogpc ycey"  # Use App Password for Gmail
-
-#     subject = f"Interview Report for {student_name}"
-#     body = f"Hello,\n\nHere is the interview report for {student_name}.\n\nRegards,\nConcret.io"
-
-#     msg = EmailMessage()
-#     msg["Subject"] = subject
-#     msg["From"] = sender_email
-#     msg["To"] = receiver_email
-#     msg.set_content(body)
-
-#     # Attach PDF
-#     with open(report_path, "rb") as f:
-#         file_data = f.read()
-#         msg.add_attachment(file_data, maintype="application", subtype="pdf", filename=report_path.split("/")[-1])
-
-#     try:
-#         with smtplib.SMTP("smtp.gmail.com", 587) as server:
-#             server.starttls()
-#             server.login(sender_email, app_password)
-#             server.send_message(msg)
-#             print(f"📧 Email sent to {receiver_email} with report.")
-#     except Exception as e:
-#         print(f"❌ Failed to send email: {e}")

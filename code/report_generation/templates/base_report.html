@@ -83,7 +83,7 @@
     </tr>
     <tr>
       <td class="label">AI Remarks</td><td>:</td><td>{{ ai_remarks or '' }}</td>
-      <td class="label">Interviewer</td><td>:</td><td>{{ interviewer_name or '' }}</td>
+      <td class="label">Interviewer ID</td><td>:</td><td>{{ interviewer_name or '' }}</td>
     </tr>
     <tr>
       <td class="label">Network Condition</td><td>:</td><td>{{ network_condition or '' }}</td>
@@ -91,7 +91,7 @@
     </tr>
   </table>
 
-  <table class="header-table">
+  <!-- <table class="header-table">
     <tr>
       <td class="label">Experience :</td>
       <td>{{ job.experience or '' }}</td>
@@ -106,9 +106,9 @@
         {% endif %}
       </td>
     </tr>
-  </table>
+  </table> -->
 
-  <table class="header-table">
+  <!-- <table class="header-table">
     <tr>
       <td class="label">Scheduled By :</td>
       <td>
@@ -120,18 +120,18 @@
       <td class="label">Current Round :</td>
       <td>{{ job.current_round or '' }}</td>
     </tr>
-  </table>
+  </table> -->
 </div>
 
-<!-- ===== SUMMARY STATISTICS ===== -->
+<!-- ===== FRADULENT STATISTICS ===== -->
 <div class="section">
-  <h2>Summary Statistics</h2>
+  <h2>Fraudulent Statistics</h2>
   <table>
     <thead>
       <tr>
         <th>Type of Activity</th>
         <th>Count</th>
-        <th>Rating</th>
+        <th>Criticality</th>
       </tr>
     </thead>
     <tbody>
@@ -160,7 +160,7 @@
 
 <!-- ===== DETAILED VIOLATIONS ===== -->
 <div class="section">
-  <h2>Detailed Violations</h2>
+  <h2>Violation Attachments</h2>
   {% set groups = {} %}
   {% for v in violations %}
     {% set _ = groups.setdefault(v.type, []).append(v) %}

@@ -45,9 +45,9 @@ detection:
     tv_min_area_frac: 0.015            # 1.5% of frame area
     
   audio_monitoring:
-    enabled: true
-    sample_rate: 16000
-    chunk_size: 4096
+    # enabled: true
+    # sample_rate: 16000
+    # chunk_size: 4096
     whisper_enabled: true  # Enable only when needed
     whisper_model: "medium"
    
