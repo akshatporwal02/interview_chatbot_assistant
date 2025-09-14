@@ -2,6 +2,7 @@ import cv2
 import torch
 from ultralytics import YOLO
 from datetime import datetime
+ 
 
 
 class ObjectDetector:
@@ -38,6 +39,7 @@ class ObjectDetector:
             self.model = YOLO(str(model_path))
 
             # Optimize model settings from config
+            # Ultralytics does not support 'dml' device string; use CUDA if available else CPU
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
             imgsz = int(self.config.get('imgsz', 960))
             self.model.overrides['conf'] = float(self.config.get('base_conf'))

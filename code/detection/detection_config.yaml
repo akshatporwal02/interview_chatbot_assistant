@@ -4,8 +4,8 @@ detection:
     min_confidence: 0.8
   eye_tracking:
     gaze_threshold: 2          # seconds
-    blink_threshold: 0.3       # EAR threshold for blink detection
-    gaze_sensitivity: 15       # pixels threshold for gaze detection
+    # blink_threshold: 0.3       # EAR threshold for blink detection
+    # gaze_sensitivity: 15       # pixels threshold for gaze detection
     consecutive_frames: 2      # frames for gaze change detection
   multi_face:
     alert_threshold: 3      # frames
@@ -50,4 +50,4 @@ detection:
     # chunk_size: 4096
     whisper_enabled: true  # Enable only when needed
     whisper_model: "medium"
-   
+    

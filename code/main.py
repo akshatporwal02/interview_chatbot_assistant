@@ -104,7 +104,7 @@ def join_daily(meeting_time_utc, meeting_url):
     room_name = urlparse(meeting_url).path.lstrip("/")
     meeting_info = None
 
-    print(f"🗕️ Meeting Scheduled IST: {meeting_time_ist.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🗕️ Meeting Scheduled IST: {meeting_time_ist.strftime('%Y-%m-%d %H:%M:%S')} | Room Name: {room_name}")
 
     session_ts_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
@@ -246,6 +246,16 @@ def join_daily(meeting_time_utc, meeting_url):
                                 if meeting_info.get("duration") and meeting_info.get("start_time"):
                                     end_utc = datetime.fromtimestamp(meeting_info["start_time"] + meeting_info["duration"], tz=timezone.utc)
                                     meeting_info["end_time_ist"] = utc_to_ist(end_utc).strftime('%Y-%m-%d %H:%M:%S')
+                                    # Add human-readable duration string for report display
+                                    total_secs = int(meeting_info.get("duration", 0))
+                                    hrs, rem = divmod(total_secs, 3600)
+                                    mins, secs = divmod(rem, 60)
+                                    if hrs:
+                                        meeting_info["duration_str"] = f"{hrs}h {mins}m {secs}s"
+                                    elif mins:
+                                        meeting_info["duration_str"] = f"{mins}m {secs}s"
+                                    else:
+                                        meeting_info["duration_str"] = f"{secs}s"
                                 print(f"📋 Final Meeting Info with Duration: {meeting_info}")
                             else:
                                 print("⚠️ Could not fetch final meeting info.")
@@ -269,6 +279,12 @@ def join_daily(meeting_time_utc, meeting_url):
             except Exception as e:
                 print(f"[ERROR] {e}")
                 break
+
+        # Drop the last pending detection from persistence (ignore last detection)
+        try:
+            logger.finalize()
+        except Exception:
+            pass
 
         page.wait_for_timeout(2000)
         # session.browser.close()
@@ -341,7 +357,7 @@ def join_daily(meeting_time_utc, meeting_url):
                     #     send_email_with_attachments(
                     #       report_path=report_path,
                     #       student_name=student['name'],
-                    #       receiver_email='',
+                    #       receiver_email='akshatporwal022003@gmail.com',
                     #       room_name=room_name
                     #       )
                     # except Exception as e:
@@ -364,7 +380,7 @@ if __name__ == "__main__":
     # if len(sys.argv) >= 3:
     #     url = sys.argv[1]
     #     room_name = sys.argv[2]
-        # log_path = init_terminal_logging(room_name)
+    #     log_path = init_terminal_logging(room_name)
     #     meeting_time_utc = datetime.now(timezone.utc)  # assume join now
     #     join_daily(meeting_time_utc, url)
     # else:
