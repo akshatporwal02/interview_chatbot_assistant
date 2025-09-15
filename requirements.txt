@@ -1,0 +1,31 @@
+# Core dependencies
+requests>=2.31.0
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+pytz>=2023.3
+
+# Computer Vision and AI
+opencv-python>=4.8.0
+numpy>=1.24.0
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+faster-whisper>=0.9.0
+
+# Audio processing
+pyaudio>=0.2.11
+
+# Browser automation
+playwright>=1.40.0
+
+# Email and messaging
+smtplib2>=0.2.1
+
+# Report generation
+jinja2>=3.1.2
+pdfkit>=1.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+pathlib2>=2.3.7

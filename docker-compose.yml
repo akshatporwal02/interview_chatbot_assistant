@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  interview-chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: interview-chatbot-assistant
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=:99
+    env_file:
+      - .env
+    volumes:
+      - ./session_data:/app/session_data
+      - ./reports:/app/reports
+      - ./config:/app/config
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chatbot-network
+
+networks:
+  chatbot-network:
+    driver: bridge
+
+volumes:
+  session_data:
+  reports:

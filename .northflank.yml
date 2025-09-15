@@ -1,0 +1,57 @@
+# Northflank deployment configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: interview-chatbot-assistant
+spec:
+  type: combined
+  billing:
+    deploymentPlan: nf-compute-20
+  deployment:
+    instances: 1
+    storage:
+      ephemeralStorage:
+        storageSize: 10240
+        storageClass: ssd
+    docker:
+      configType: dockerfile
+      dockerfile:
+        buildEngine: kaniko
+        dockerFilePath: /Dockerfile
+        dockerWorkDir: /
+    resources:
+      cpu: 2000
+      memory: 4096
+    runtimeEnvironment:
+      variables:
+        PYTHONUNBUFFERED: "1"
+        DISPLAY: ":99"
+        ENVIRONMENT: "production"
+        PORT: "8080"
+    healthChecks:
+      readinessProbe:
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+        httpGet:
+          path: /health
+          port: 8080
+      livenessProbe:
+        initialDelaySeconds: 60
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+        exec:
+          command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+  networking:
+    ports:
+      - name: http
+        internalPort: 8080
+        public: true
+        protocol: HTTP
+    domains:
+      - domain: interview-chatbot.northflank.app

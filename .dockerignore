@@ -1,0 +1,105 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+README*
+docs/
+documentation/
+
+# Test files
+tests/
+test_*/
+*_test.py
+*_tests.py
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+logs/
+session_data/logs/
+session_data/recordings/
+session_data/transcripts_doc/
+
+# Generated reports (exclude from image)
+reports/generated/
+
+# Environment files (security)
+.env
+.env.local
+.env.production
+.env.staging
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Deployment files
+deployment/
+k8s/
+helm/
+
+# Large model files (download at runtime if needed)
+*.bin
+*.pt
+*.pth
+models/
+
+# Backup files
+*.bak
+*.backup
