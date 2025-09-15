@@ -13,14 +13,6 @@ mkdir -p /app/reports/generated/images
 chmod -R 755 /app/session_data
 chmod -R 755 /app/reports
 
-# Start Xvfb for headless browser operations
-echo "Starting Xvfb for headless browser operations..."
-Xvfb :99 -screen 0 1920x1080x24 &
-export DISPLAY=:99
-
-# Wait for Xvfb to start
-sleep 2
-
 # Verify environment variables
 echo "Checking environment variables..."
 if [ -z "$DAILY_API_KEY" ]; then
@@ -35,5 +27,5 @@ fi
 cd /app/code
 
 # Execute the main application
-echo "Starting Interview Chatbot Assistant..."
+echo "Starting Interview Chatbot Assistant (Cloud Mode)..."
 exec "$@"

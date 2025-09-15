@@ -13,9 +13,6 @@ faster-whisper==0.10.0
 # Audio processing - using pure Python implementation
 SpeechRecognition==3.10.0
 
-# Browser automation
-playwright==1.40.0
-
 # Report generation
 jinja2==3.1.2
 weasyprint==60.1

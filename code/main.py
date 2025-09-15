@@ -6,7 +6,11 @@ import pytz
 import yaml
 import sys
 from datetime import datetime, timezone
-from automation.browser_session import BrowserSession
+try:
+    from automation.browser_session import BrowserSession
+except ImportError:
+    # Fallback to mock for cloud deployment without Playwright
+    from automation.browser_session_mock import MockBrowserSession as BrowserSession
 from automation.navigation import open_ui_url, ensure_ui_ready, get_daily_frame, get_daily_iframe
 from automation.join_flow import fill_room_and_join
 from automation.recording_controls import start_recording_if_possible, stop_recording_and_leave
