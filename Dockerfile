@@ -7,37 +7,46 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:99
 
-# Install system dependencies required for the application
-RUN apt-get update && apt-get install -y \
-    # System utilities
+# Update package lists and install essential packages first
+RUN apt-get update && apt-get upgrade -y
+
+# Install system dependencies in smaller chunks to avoid timeout
+RUN apt-get install -y --no-install-recommends \
     wget \
     curl \
     gnupg \
-    software-properties-common \
-    apt-transport-https \
     ca-certificates \
-    # Audio dependencies
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install audio and media dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2-dev \
     portaudio19-dev \
-    # OpenCV dependencies
+    ffmpeg \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install OpenCV and computer vision dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1 \
-    libglib2.0-0 \
     libgtk-3-0 \
-    libavcodec-dev \
-    libavformat-dev \
-    libswscale-dev \
-    libv4l-dev \
-    libxvidcore-dev \
-    libx264-dev \
-    libjpeg-dev \
-    libpng-dev \
-    libtiff-dev \
-    libatlas-base-dev \
-    # Browser dependencies for Playwright
+    libjpeg62-turbo \
+    libpng16-16 \
+    libtiff5 \
+    libatlas3-base \
+    libopencv-dev \
+    python3-opencv \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install browser and GUI dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -45,23 +54,21 @@ RUN apt-get update && apt-get install -y \
     libcups2 \
     libdrm2 \
     libxss1 \
-    libgconf-2-4 \
     libxrandr2 \
-    libasound2 \
     libpangocairo-1.0-0 \
-    libatk1.0-0 \
     libcairo-gobject2 \
-    libgtk-3-0 \
     libgdk-pixbuf2.0-0 \
-    # PDF generation dependencies
-    wkhtmltopdf \
     xvfb \
-    # Font dependencies
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install fonts and PDF tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
-    # Process management
-    supervisor \
+    wkhtmltopdf \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Create application directory
