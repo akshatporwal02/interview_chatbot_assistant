@@ -1,28 +1,23 @@
 # Core dependencies
-requests>=2.31.0
-pyyaml>=6.0.1
-python-dotenv>=1.0.0
-pytz>=2023.3
+requests==2.31.0
+pyyaml==6.0.1
+python-dotenv==1.0.0
+pytz==2023.3
 
-# Computer Vision and AI (use headless versions for better compatibility)
-opencv-python-headless>=4.8.0
-numpy>=1.24.0
-torch>=2.0.0
-torchvision>=0.15.0
-ultralytics>=8.0.0
-faster-whisper>=0.9.0
+# Computer Vision and AI - using CPU-only versions for cloud deployment
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
+ultralytics==8.0.196
+faster-whisper==0.10.0
 
-# Audio processing
-pyaudio>=0.2.11
+# Audio processing - using pure Python implementation
+SpeechRecognition==3.10.0
 
 # Browser automation
-playwright>=1.40.0
+playwright==1.40.0
 
 # Report generation
-jinja2>=3.1.2
-pdfkit>=1.0.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
-
-# Utilities
-pathlib
+jinja2==3.1.2
+weasyprint==60.1
+matplotlib==3.7.2
+seaborn==0.12.2

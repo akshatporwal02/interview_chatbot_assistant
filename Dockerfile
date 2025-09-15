@@ -1,75 +1,10 @@
-# Use Python 3.11 slim image as base for better performance
-FROM python:3.11-slim
+# Use Python 3.11 full image (not slim) to avoid apt-get issues
+FROM python:3.11
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:99
-
-# Update package lists and install essential packages first
-RUN apt-get update && apt-get upgrade -y
-
-# Install system dependencies in smaller chunks to avoid timeout
-RUN apt-get install -y --no-install-recommends \
-    wget \
-    curl \
-    gnupg \
-    ca-certificates \
-    build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install audio and media dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libasound2-dev \
-    portaudio19-dev \
-    ffmpeg \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install OpenCV and computer vision dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libgomp1 \
-    libgtk-3-0 \
-    libjpeg62-turbo \
-    libpng16-16 \
-    libtiff5 \
-    libatlas3-base \
-    libopencv-dev \
-    python3-opencv \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install browser and GUI dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxss1 \
-    libxrandr2 \
-    libpangocairo-1.0-0 \
-    libcairo-gobject2 \
-    libgdk-pixbuf2.0-0 \
-    xvfb \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install fonts and PDF tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    fonts-liberation \
-    fonts-dejavu-core \
-    fontconfig \
-    wkhtmltopdf \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 # Create application directory
 WORKDIR /app
@@ -77,9 +12,10 @@ WORKDIR /app
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies with specific torch CPU versions
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir torch==2.0.1+cpu torchvision==0.15.2+cpu --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r requirements.txt --ignore-installed
 
 # Install Playwright browsers
 RUN playwright install chromium && \
