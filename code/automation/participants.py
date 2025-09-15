@@ -1,15 +1,21 @@
 import time
 from typing import List, Optional
 from playwright.sync_api import Frame
+import re
 
 
 def pin_participant(daily_frame: Frame, exclude_names: Optional[List[str]] = None) -> bool:
     """
     Pins the first eligible participant in the Daily call.
-    Excludes Observer Bot and concret.io by default.
+    Excludes Strata (Bot) and concret.io by default.
     """
     if exclude_names is None:
-        exclude_names = ["Observer Bot", "concret.io"]
+        # Include common variations to be safe
+        exclude_names = ["Strata(Bot)", "Strata (Bot)", "Strata", "concret.io"]
+
+    def _normalize(s: str) -> str:
+        """Lowercase and remove all non-alphanumeric characters for robust matching."""
+        return re.sub(r"[^a-z0-9]+", "", s.lower())
 
     try:
         # Step 1: Click People button
@@ -34,7 +40,8 @@ def pin_participant(daily_frame: Frame, exclude_names: Optional[List[str]] = Non
                 continue
 
             name = name_el.inner_text().strip()
-            if any(ex.lower() in name.lower() for ex in exclude_names):
+            norm_name = _normalize(name)
+            if any(_normalize(ex) in norm_name for ex in exclude_names):
                 continue
 
             # Step 3: Open 3-dots menu

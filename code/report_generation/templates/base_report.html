@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Interview Summary - {{ student.name }}</title>
+  <title>{{ student.name }} - {{(decision and decision.recommendation) or ''}}</title>
   <style>
     body{
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -67,7 +67,7 @@
 
 <!-- ===== HEADER ===== -->
 <div class="header">
-  <h1>{{ student.name }}-{{(decision and decision.recommendation) or ''}}</h1>
+  <h1>{{ student.name }} - {{(decision and decision.recommendation) or ''}}</h1>
   <table class="header-table">
     <tr>
       <td class="label">Candidate ID</td><td>:</td><td>{{ student.id or '' }}</td>
@@ -82,15 +82,14 @@
       <td class="label">End Time</td><td>:</td><td>{{ meeting_info.end_time_ist or '' }}</td>
     </tr>
     <tr>
-      <td class="label">Duration</td><td>:</td><td>{{meeting_info.duration_str or '' }}</td>
-    </tr>
-    <tr>
-      <td class="label">AI Remarks</td><td>:</td><td>{{ ai_remarks or '' }}</td>
       <td class="label">Interviewer ID</td><td>:</td><td>{{ interviewer_name or '' }}</td>
+      <td class="label">Duration</td><td>:</td><td>{{meeting_info.duration_str or '' }}</td>    
     </tr>
     <tr>
-      <td class="label">Network Condition</td><td>:</td><td>{{ network_condition or '' }}</td>
+      <!-- <td class="label">Network Condition</td><td>:</td><td>{{ network_condition or '' }}</td> -->
       <td class="label">Email</td><td>:</td><td>{{ student.email or '' }}</td>
+      <td class="label"></td><td></td><td></td>
+
     </tr>
   </table>
 

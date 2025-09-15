@@ -43,7 +43,7 @@ from utils.api_utils import (
 )
 from utils.media_utils import download_file as util_download_file, extract_audio_from_video as util_extract_audio_from_video, fetch_cloud_recording_wav as util_fetch_cloud_recording_wav
 
-from utils.env_utils import load_dotenv, get_daily_api_key
+from utils.env_utils import load_dotenv, get_daily_api_key, get_email_default_receiver
 from utils.terminal_log import init_terminal_logging
 load_dotenv()
 DAILY_API_KEY = get_daily_api_key()
@@ -111,7 +111,7 @@ def join_daily(meeting_time_utc, meeting_url):
     with BrowserSession(headless=True, permissions=["camera", "microphone", "midi", "midi-sysex"]) as session:
         page = session.page
 
-        vercel_ui_url = "https://concretiomeet.vercel.app/"
+        vercel_ui_url = "https://candidly.concret.io/"
         open_ui_url(page, vercel_ui_url)
         print("✅ Opened custom Vercel-hosted UI")
         project_root = Path(__file__).resolve().parents[1]
@@ -132,7 +132,8 @@ def join_daily(meeting_time_utc, meeting_url):
 
         try:
             ensure_ui_ready(page)
-            fill_room_and_join(page, get_daily_frame(page), meeting_url, username="Observer Bot")
+            # Pass None to avoid premature iframe resolution; join_flow will resolve it after confirm
+            fill_room_and_join(page, None, meeting_url, username="Strata (Bot)")
             print("✅ Joined Daily room via automation module")
             join_time_ist = utc_to_ist(datetime.now(timezone.utc))
             print(f"🕒 Bot JOINED meeting at: {join_time_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
@@ -164,7 +165,7 @@ def join_daily(meeting_time_utc, meeting_url):
         # audio_monitor.set_alert_logger(logger)
 
         start_time = time.time()
-        max_duration = 3600
+        max_duration = 7200
         meeting_participants = []
         last_participant_check = 0
         everyone_left_time = None
@@ -178,17 +179,37 @@ def join_daily(meeting_time_utc, meeting_url):
 
         while time.time() - start_time < max_duration:
             try:
+                # Track if at least one candidate (not interviewer, not bot) is present this iteration
+                candidate_present = False
                 current_participants = get_active_participants(room_name)
                 if current_participants:
-                    if not detection_active:
+                    # Minimal candidate presence check: exclude interviewer and bot (spaces ignored)
+                    for _p in current_participants:
+                        _name = (_p.get("userName") or "").strip().lower()
+                        _name_ns = _name.replace(" ", "")
+                        if _name == "concret.io":
+                            continue
+                        if ("strata" in _name_ns) and ("bot" in _name_ns):
+                            continue
+                        candidate_present = True
+                        break
+
+                    if candidate_present and not detection_active:
                         detection_active = True
-                        print("🔄 Detection RESUMED - Participants joined the meeting")
+                        print("🔄 Detection RESUMED - Candidate present")
+                    if not candidate_present and detection_active:
+                        detection_active = False
+                        print("⏸️ Detection PAUSED - No candidate present")
 
                     current_time = time.time()
                     if current_time - last_participant_check >= 30:
                         last_participant_check = current_time
                         for participant in current_participants:
                             participant_name = participant.get("userName", "Unknown")
+                            # Simple guard: do not record Strata bot as participant
+                            name_lower = (participant_name or "").strip().lower()
+                            if "strata" in name_lower and "bot" in name_lower:
+                                continue
                             if not any(p.get("userName") == participant_name for p in meeting_participants):
                                 meeting_participants.append(participant)
                                 print(f"📝 Recorded participant: {participant_name}")
@@ -197,23 +218,24 @@ def join_daily(meeting_time_utc, meeting_url):
                         detection_active = False
                         print("⏸️ Detection PAUSED - No participants in the meeting")
 
-                screenshot = take_screenshot(page, full_page=False)
-                cv_frame = cv2.imdecode(np.frombuffer(screenshot, np.uint8), cv2.IMREAD_COLOR)
-                if cv_frame is not None:
-                    big_tile_frame = get_big_tile_crop(page, daily_frame, iframe_element, cv_frame)
-                    if big_tile_frame is not None:
-                        face.detect_face(big_tile_frame)
-                        eye.track_eyes(big_tile_frame)
-                        multi.detect_multiple_faces(big_tile_frame)
-                        objects.detect_objects(big_tile_frame, visualize=True)
-                    else:
-                        print("⚠️ Could not crop big tile; running detection on full frame")
-                        face.detect_face(cv_frame)
-                        eye.track_eyes(cv_frame)
-                        multi.detect_multiple_faces(cv_frame)
-                        objects.detect_objects(cv_frame, visualize=True)
+                if detection_active:
+                    screenshot = take_screenshot(page, full_page=False)
+                    cv_frame = cv2.imdecode(np.frombuffer(screenshot, np.uint8), cv2.IMREAD_COLOR)
+                    if cv_frame is not None:
+                        big_tile_frame = get_big_tile_crop(page, daily_frame, iframe_element, cv_frame)
+                        if big_tile_frame is not None:
+                            face.detect_face(big_tile_frame)
+                            eye.track_eyes(big_tile_frame)
+                            multi.detect_multiple_faces(big_tile_frame)
+                            objects.detect_objects(big_tile_frame, visualize=True)
+                        else:
+                            print("⚠️ Could not crop big tile; running detection on full frame")
+                            face.detect_face(cv_frame)
+                            eye.track_eyes(cv_frame)
+                            multi.detect_multiple_faces(cv_frame)
+                            objects.detect_objects(cv_frame, visualize=True)
 
-                if daily_frame and current_participants and not pinned_once:
+                if daily_frame and candidate_present and not pinned_once:
                     pinned = pin_participant(daily_frame)
                     if pinned:
                         print("✅ Successfully pinned participant")
@@ -228,7 +250,18 @@ def join_daily(meeting_time_utc, meeting_url):
                     print(f"📤 Alert sent: {msg}")
 
                 current_participants_for_leaving = get_active_participants(room_name)
-                if not current_participants_for_leaving:
+                # Start leave timer only when NO participant except the bot is present
+                no_candidate_present = True
+                if current_participants_for_leaving:
+                    for _p in current_participants_for_leaving:
+                        _name2 = (_p.get("userName") or "").strip().lower()
+                        _name2_ns = _name2.replace(" ", "")
+                        if ("strata" in _name2_ns) and ("bot" in _name2_ns):
+                            continue
+                        no_candidate_present = False
+                        break
+
+                if no_candidate_present:
                     if everyone_left_time is None:
                         everyone_left_time = time.time()
                         print("👋 All participants have left. Waiting 1 minute before leaving...")
@@ -288,8 +321,30 @@ def join_daily(meeting_time_utc, meeting_url):
 
         page.wait_for_timeout(2000)
         # session.browser.close()
+        # Decide whether to proceed with post-processing based on who attended
         if not meeting_participants:
-            print("As there were no participants in the session, report generation was not applicable.")
+            print("As there were no participants in the session, report generation is not applicable.")
+            return
+
+        normalized_names = [
+            (p.get("userName") or "Unknown").strip().lower() for p in meeting_participants
+        ]
+        has_concret = any(n == "concret.io" for n in normalized_names)
+        has_candidate = any(n not in {"concret.io", "Strata (Bot)"} for n in normalized_names)
+
+        # Case 1: Only strata(Bot) and concret.io were present (no candidate)
+        if not has_candidate and has_concret:
+            print("As candidate was not present so report generation is not applicable.")
+            return
+
+        # Case 2: Only Candidate and Strata(Bot)  were present (no interviewer)
+        if has_candidate and not has_concret:
+            print("As interviewer was not present so report generation is not applicable.")
+            return
+
+        # Edge case: Neither candidate nor interviewer present (e.g., only Strata(Bot))
+        if not has_candidate and not has_concret:
+            print("As neither candidate nor interviewer were present so report generation is not applicable.")
             return
 
         transcript_text = None
@@ -314,7 +369,7 @@ def join_daily(meeting_time_utc, meeting_url):
         candidate_analysis, interviewer_analysis, decision = parse_llm_response(llm_analysis)
 
         if meeting_participants:
-            print(f"📊 Generating reports for {len(meeting_participants)} participant(s)")
+            print(f"📊 Generating reports for  participant(s)")
             # Find interviewer (concret.io) ID
             interviewer_id = None
             for p in meeting_participants:
@@ -353,15 +408,16 @@ def join_daily(meeting_time_utc, meeting_url):
 
                 if report_path:
                     print(f"📄 Report saved for {student['name']}: {report_path}")
-                    # try:
-                    #     send_email_with_attachments(
-                    #       report_path=report_path,
-                    #       student_name=student['name'],
-                    #       receiver_email='akshatporwal022003@gmail.com',
-                    #       room_name=room_name
-                    #       )
-                    # except Exception as e:
-                    #       print(f"❌ Failed to send email for {student['name']}: {e}")
+                    try:
+                        receiver = get_email_default_receiver()
+                        send_email_with_attachments(
+                            report_path=report_path,
+                            student_name=student['name'],
+                            receiver_email=receiver,  # falls back inside to .env if None
+                            room_name=room_name,
+                        )
+                    except Exception as e:
+                        print(f"❌ Failed to send email for {student['name']}: {e}")
 
                 else:
                     print(f"❌ Report generation failed for {student['name']}")

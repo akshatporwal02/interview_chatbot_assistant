@@ -45,7 +45,7 @@ def is_meeting_ongoing(room_name: str, headers: Dict[str, str]) -> Literal["bot_
         participants = get_room_presence(room_name, headers)
         for p in participants:
             name = (p.get("userName") or p.get("user_name") or p.get("name") or "").strip()
-            if name == "Observer Bot":
+            if name == "Strata(Bot)":
                 return "bot_present"
     except Exception:
         pass
@@ -98,7 +98,7 @@ def get_next_daily_meeting(headers: Dict[str, str]) -> Tuple[Optional[datetime],
     if not rooms:
         return None, None
     rooms.sort(key=lambda r: r.get("config", {}).get("nbf", 0))
-    next_room = rooms[2]
+    next_room = rooms[1]
     meeting_time = datetime.fromtimestamp(next_room["config"].get("nbf", time.time()), tz=timezone.utc)
     return meeting_time, next_room["url"]
 
@@ -108,7 +108,7 @@ def get_active_participants(room_name: str, headers: Dict[str, str]) -> List[Dic
     try:
         res = requests.get(url, headers=headers)
         data = res.json().get("data", [])
-        filtered = [p for p in data if p.get("userName") not in ["Observer Bot"]]
+        filtered = [p for p in data if p.get("userName") not in ["Strata(Bot)"]]
         return filtered
     except Exception:
         return []

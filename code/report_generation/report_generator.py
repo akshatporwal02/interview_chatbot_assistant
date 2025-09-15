@@ -179,15 +179,25 @@ class ReportGenerator:
         for v_type, count in stats['by_type'].items():
             stats['ratings'][v_type] = rate(v_type, count)
 
-        # Overall remark
-        if stats['total'] <= 1:
+        # Overall remark based on presence of any severity level
+        # Rules:
+        # - Any Critical -> "Extremely Poor"
+        # - Else any Major -> "Poor"
+        # - Else any Medium -> "Good"
+        # - Else if no violations -> "Excellent"
+        # - Else (only Low present) -> "Average"
+        if stats['total'] == 0:
             stats['overall_remark'] = "Excellent"
-        elif stats['total'] <= 3:
-            stats['overall_remark'] = "Good"
-        elif stats['total'] <= 5:
-            stats['overall_remark'] = "Average"
         else:
-            stats['overall_remark'] = "Poor"
+            ratings_present = set(stats['ratings'].values())
+            if "Critical" in ratings_present:
+                stats['overall_remark'] = "Extremely Poor"
+            elif "Major" in ratings_present:
+                stats['overall_remark'] = "Poor"
+            elif "Medium" in ratings_present:
+                stats['overall_remark'] = "Good"
+            else:
+                stats['overall_remark'] = "Average"
 
         return stats
 

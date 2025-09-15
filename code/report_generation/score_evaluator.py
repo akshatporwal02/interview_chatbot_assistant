@@ -1,13 +1,14 @@
 from pathlib import Path
 from glob import glob
 from openai import OpenAI
+from utils.env_utils import load_dotenv, get_openai_api_key
 import os
 import re
 
 # Set OpenAI API key
-
-api_key = ""
-client = OpenAI(api_key=api_key)
+load_dotenv()  # Load .env if present
+OPENAI_API_KEY = get_openai_api_key()
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Updated Prompt Template (matches screenshot style)
 EVAL_PROMPT_TEMPLATE = """
@@ -61,9 +62,10 @@ Attitude (i)        : Polite / Harsh / Rude / N/A
                       Short description
 
 Result
-Status  : Go Ahead / Rejected / On Hold / Re-Eval / No Show
+Status  : Go Ahead / Rejected / On Hold / Re-Evaluation / No Show
           (⚠️ Status must be decided only from Overall Remark, not from suspicious activity.)
 Summary : <Short concise summary>
+AI Remarks: <Provide 4-5 words only capturing the essence of the summary>
 """
 
 
@@ -177,10 +179,21 @@ def parse_llm_response(llm_response: str):
             elif line.startswith("Summary"):
                 if decision:
                     decision["summary"] = line.split(":", 1)[1].strip()
+            elif line.startswith("AI Remarks"):
+                if decision is None:
+                    decision = {}
+                decision["ai_remarks"] = line.split(":", 1)[1].strip()
 
         # 🔑 Append Overall Remark at the end of candidate_analysis
         if overall_remark:
             candidate_analysis.append(overall_remark)
+            # Also expose the overall remark on decision for downstream use (e.g., email)
+            if decision is None:
+                decision = {}
+            try:
+                decision["overall_remark_value"] = overall_remark.get("value") if isinstance(overall_remark, dict) else str(overall_remark)
+            except Exception:
+                pass
 
     except Exception as e:
         print(f"⚠️ Error parsing LLM response: {e}")
@@ -241,15 +254,15 @@ def analyze_transcript(room_name: str) -> str:
         return "LLM evaluation failed."
 
 
-if __name__ == "__main__":
-    room_name = input("Enter room name: ").strip()
-    result = analyze_transcript(room_name)
-    print("\n📄 Evaluation Report:\n")
-    print(result)
+# if __name__ == "__main__":
+#     room_name = input("Enter room name: ").strip()
+#     result = analyze_transcript(room_name)
+#     print("\n📄 Evaluation Report:\n")
+#     print(result)
     
-    # Parse into structured data
-    print("\n🔍 Parsed Data:\n")
-    candidate_analysis, interviewer_analysis, decision = parse_llm_response(result)
-    print("Candidate Analysis:", candidate_analysis)
-    print("Interviewer Analysis:", interviewer_analysis)
-    print("Decision:", decision)
+#     # Parse into structured data
+#     print("\n🔍 Parsed Data:\n")
+#     candidate_analysis, interviewer_analysis, decision = parse_llm_response(result)
+#     print("Candidate Analysis:", candidate_analysis)
+#     print("Interviewer Analysis:", interviewer_analysis)
+#     print("Decision:", decision)

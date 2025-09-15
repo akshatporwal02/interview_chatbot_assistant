@@ -39,3 +39,16 @@ def get_env(name: str, default: Optional[str] = None) -> Optional[str]:
 
 def get_daily_api_key() -> Optional[str]:
     return get_env("DAILY_API_KEY")
+
+def get_openai_api_key() -> Optional[str]:
+    return get_env("OPENAI_API_KEY")    
+
+# Email configuration helpers
+def get_email_sender() -> Optional[str]:
+    return get_env("EMAIL_SENDER")
+
+def get_email_app_password() -> Optional[str]:
+    return get_env("EMAIL_APP_PASSWORD")
+
+def get_email_default_receiver() -> Optional[str]:
+    return get_env("EMAIL_RECEIVER")
