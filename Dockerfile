@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir torch==2.0.1+cpu torchvision==0.15.2+cpu --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt --ignore-installed
 
+# Install Playwright browsers (Chromium) and required system dependencies
+# Note: this must run as root and after Playwright is installed via requirements
+RUN python -m playwright install --with-deps chromium
+
 # Create necessary directories
 RUN mkdir -p /app/session_data/logs \
              /app/session_data/recordings \

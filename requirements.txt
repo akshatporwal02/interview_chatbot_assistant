@@ -10,11 +10,27 @@ numpy==1.24.3
 ultralytics==8.0.196
 faster-whisper==0.10.0
 
+# Additional ML libraries used by detection modules
+mediapipe==0.10.9
+facenet-pytorch==2.5.3
+pillow==10.2.0
+
+# Note: torch and torchvision are installed in Dockerfile with CPU wheels
+# torch/torchvision versions are pinned and installed via index-url in Dockerfile
+
 # Audio processing - using pure Python implementation
 SpeechRecognition==3.10.0
+PyAudio==0.2.14
 
 # Report generation
 jinja2==3.1.2
 weasyprint==60.1
+pdfkit==1.2.0
 matplotlib==3.7.2
 seaborn==0.12.2
+
+# LLM/AI API clients
+openai==1.40.0
+
+# Browser automation
+playwright==1.46.0
