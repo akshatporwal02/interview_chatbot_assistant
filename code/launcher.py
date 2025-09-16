@@ -26,8 +26,13 @@ def launch_room_bot(room_url, room_name):
             ["start","/MIN", "cmd", "/c", "python", "main.py", room_url, room_name],
             shell=True
         )
-    else:  # macOS / Linux
-        subprocess.Popen(["gnome-terminal", "--", "python3", "main.py", room_url, room_name])
+    else:  # macOS / Linux / Containers
+        # In Docker containers, terminal emulators like gnome-terminal are not available.
+        # Launch the bot process directly using the current Python interpreter.
+        python_exec = sys.executable or "python3"
+        # Ensure we reference the correct path to main.py from project root in container
+        main_path = os.path.join(os.path.dirname(__file__), "main.py")
+        subprocess.Popen([python_exec, main_path, room_url, room_name])
 
 
 if __name__ == "__main__":
