@@ -18,8 +18,7 @@ playwright==1.39.0
 
 # Audio processing
 faster-whisper==0.9.0
-pyaudio==0.2.11
-sounddevice==0.4.6
+
 librosa==0.10.1
 scipy==1.11.3
 
