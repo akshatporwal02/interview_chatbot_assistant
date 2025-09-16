@@ -7,38 +7,41 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:99
 
-# Install system dependencies
+# Install system dependencies in stages to avoid conflicts
 RUN apt-get update && apt-get install -y \
-    # Essential build tools
+    wget \
+    gnupg \
+    ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install essential build tools
+RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
-    # Audio processing dependencies
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install media and display dependencies
+RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1-dev \
-    # Computer vision dependencies
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libgstreamer1.0-0 \
-    libgstreamer-plugins-base1.0-0 \
-    # PDF generation dependencies
-    wkhtmltopdf \
-    # Font dependencies
+    xvfb \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install fonts and PDF tools
+RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-dejavu-core \
     fontconfig \
-    # Display dependencies for headless browser
-    xvfb \
-    # Browser dependencies
-    wget \
-    gnupg \
-    ca-certificates \
-    # Process management
-    supervisor \
-    # Cleanup
+    wkhtmltopdf \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
