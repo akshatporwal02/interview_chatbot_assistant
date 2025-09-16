@@ -49,13 +49,13 @@ def fill_room_and_join(page: Page, daily_frame: Optional[Frame], meeting_url: st
                         break
             except Exception:
                 pass
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(5000)
 
     if not daily_frame:
         raise RuntimeError("Daily iframe/frame not found after confirming join.")
 
     print("[join_flow] Setting username in Daily prejoin...")
-    daily_frame.wait_for_selector("input#username", timeout=10000)
+    daily_frame.wait_for_selector("input#username", timeout=20000)
     daily_frame.fill("input#username", username)
 
     daily_frame.wait_for_selector('button:has-text("Continue")', timeout=10000)
