@@ -3,6 +3,7 @@ import subprocess
 import sys
 import os
 import time
+from pathlib import Path
 
 from utils.api_utils import get_daily_headers, list_rooms, is_meeting_ongoing as api_is_meeting_ongoing
 from utils.env_utils import load_dotenv, get_daily_api_key
@@ -22,15 +23,19 @@ def is_meeting_ongoing(room_name):
 
 def launch_room_bot(room_url, room_name):
     if os.name == "nt":  # Windows
-        subprocess.Popen(
+        return subprocess.Popen(
             ["start","/MIN", "cmd", "/c", "python", "main.py", room_url, room_name],
-            shell=True
+            shell=True,
+            cwd=str(Path(__file__).resolve().parent)
         )
     else:  # macOS / Linux
         # In containers or servers, a graphical terminal like gnome-terminal is not available.
         # Spawn the process directly using the current Python interpreter.
         py = sys.executable or "python3"
-        subprocess.Popen([py, "main.py", room_url, room_name])
+        return subprocess.Popen(
+            [py, "-u", "main.py", room_url, room_name],
+            cwd=str(Path(__file__).resolve().parent)
+        )
 
 
 if __name__ == "__main__":
@@ -75,8 +80,19 @@ if __name__ == "__main__":
 
     # ✅ After all checks done → only now launch bots
     print("\n🚀 Launching eligible bots...\n")
+    processes = []
     for room_url, room_name in eligible_rooms:
         print(f"🔹 Opening terminal for: {room_name}")
-        launch_room_bot(room_url, room_name)
+        p = launch_room_bot(room_url, room_name)
+        if p:
+            print(f"   ↳ PID {p.pid}")
+            processes.append(p)
+
+    if processes:
+        print("\n⏳ Waiting for all bot processes to complete...\n")
+        exit_codes = [p.wait() for p in processes]
+        print(f"✅ All bots finished. Exit codes: {exit_codes}")
+    else:
+        print("⚠️ No bot processes were launched.")
 
     print("\n✅ Finished launching all eligible bots.")
