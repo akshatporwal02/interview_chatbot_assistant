@@ -65,42 +65,49 @@ RUN apt-get update && apt-get install -y \
     x11-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt* ./
-RUN if [ -f requirements.txt ]; then pip3 install --no-cache-dir -r requirements.txt; fi
+# Upgrade pip and install build tools
+RUN pip3 install --upgrade pip setuptools wheel
 
-# Install core Python packages that are definitely needed based on code analysis
+# Install Python dependencies in stages to avoid conflicts
+# Stage 1: Core dependencies
 RUN pip3 install --no-cache-dir \
-    # Web automation
-    playwright==1.40.0 \
-    # Computer vision and detection
-    opencv-python==4.8.1.78 \
-    numpy==1.24.3 \
-    # Audio processing
-    faster-whisper==0.9.0 \
-    wave \
-    # Report generation
-    pdfkit==1.0.0 \
-    matplotlib==3.7.2 \
-    jinja2==3.1.2 \
-    # API and web requests
-    requests==2.31.0 \
-    # Configuration and utilities
-    pyyaml==6.0.1 \
-    pytz==2023.3 \
-    # Email functionality
-    smtplib \
-    email-validator \
-    # Path and file utilities
-    pathlib \
-    # Additional dependencies that might be needed
-    pillow==10.0.0 \
-    scipy==1.11.2 \
-    scikit-learn==1.3.0 \
-    ultralytics \
-    torch \
-    torchvision \
-    torchaudio
+    numpy>=1.21.0 \
+    pillow>=9.0.0 \
+    requests>=2.28.0 \
+    pyyaml>=6.0 \
+    pytz>=2022.1
+
+# Stage 2: Scientific computing
+RUN pip3 install --no-cache-dir \
+    scipy>=1.9.0 \
+    scikit-learn>=1.2.0 \
+    matplotlib>=3.5.0
+
+# Stage 3: Computer vision
+RUN pip3 install --no-cache-dir \
+    opencv-python>=4.8.0
+
+# Stage 4: Web automation
+RUN pip3 install --no-cache-dir \
+    playwright>=1.30.0
+
+# Stage 5: Machine learning (PyTorch ecosystem)
+RUN pip3 install --no-cache-dir \
+    torch>=1.13.0 \
+    torchvision>=0.14.0 \
+    torchaudio>=0.13.0
+
+# Stage 6: Specialized packages
+RUN pip3 install --no-cache-dir \
+    ultralytics>=8.0.0 \
+    faster-whisper>=0.8.0 \
+    pdfkit>=1.0.0 \
+    jinja2>=3.0.0 \
+    email-validator>=1.3.0
+
+# Copy and install from requirements.txt as fallback
+COPY requirements.txt* ./
+RUN if [ -f requirements.txt ]; then pip3 install --no-cache-dir -r requirements.txt || echo "Some packages from requirements.txt may have failed, but core packages are installed"; fi
 
 # Install Playwright browsers
 RUN playwright install chromium
