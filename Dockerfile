@@ -63,6 +63,7 @@ RUN apt-get update && apt-get install -y \
     # X11 and display dependencies
     xauth \
     x11-utils \
+    tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install build tools

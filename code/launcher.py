@@ -21,13 +21,22 @@ def is_meeting_ongoing(room_name):
 
 
 def launch_room_bot(room_url, room_name):
-    if os.name == "nt":  # Windows
+    # Sanitize room_name to create a valid tmux session name
+    session_name = "".join(c for c in room_name if c.isalnum() or c in ('-', '_')).rstrip()
+
+    if os.name == "nt":  # Windows (for local development)
+        print(f"(Windows) Launching bot for {room_name} in a new terminal...")
         subprocess.Popen(
-            ["start","/MIN", "cmd", "/c", "python", "main.py", room_url, room_name],
+            ["start", "/MIN", "cmd", "/c", "python", "code/main.py", room_url, room_name],
             shell=True
         )
-    else:  # macOS / Linux
-        subprocess.Popen(["gnome-terminal", "--", "python3", "main.py", room_url, room_name])
+    else:  # Docker/Linux environment
+        print(f"(Linux/Docker) Launching bot for {room_name} in a new tmux session '{session_name}'...")
+        command = [
+            "tmux", "new-session", "-d", "-s", session_name,
+            "python3", "code/main.py", room_url, room_name
+        ]
+        subprocess.Popen(command)
 
 
 if __name__ == "__main__":
