@@ -30,7 +30,7 @@ import subprocess
 import os
 from utils.crop_ss import get_big_tile_crop
 from utils.api_utils import (
-    get_next_daily_meeting as api_get_next_daily_meeting,
+    # get_next_daily_meeting as api_get_next_daily_meeting,
     get_active_participants as api_get_active_participants,
     get_meeting_details as api_get_meeting_details,
 )
@@ -54,8 +54,8 @@ def utc_to_ist(utc_dt):
     ist = pytz.timezone("Asia/Kolkata")
     return utc_dt.astimezone(ist)
 
-def get_next_daily_meeting():
-    return api_get_next_daily_meeting(HEADERS)
+# def get_next_daily_meeting():
+#     return api_get_next_daily_meeting(HEADERS)
 
 def get_active_participants(room_name):
     try:
@@ -426,18 +426,18 @@ def join_daily(meeting_time_utc, meeting_url):
             print("⚠️ No participants found, generating default report")
 
 if __name__ == "__main__":
-    t, url = get_next_daily_meeting()
-    if t and url:
-        room_name = urlparse(url).path.lstrip("/") or "session"
-        log_path = init_terminal_logging(room_name)
-        join_daily(t, url)
-    else:
-        print("❌ No Daily.co meeting found.")
-    # if len(sys.argv) >= 3:
-    #     url = sys.argv[1]
-    #     room_name = sys.argv[2]
+    # t, url = get_next_daily_meeting()
+    # if t and url:
+    #     room_name = urlparse(url).path.lstrip("/") or "session"
     #     log_path = init_terminal_logging(room_name)
-    #     meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-    #     join_daily(meeting_time_utc, url)
+    #     join_daily(t, url)
     # else:
-    #     print("❌ Please provide room URL and name as arguments.")
+    #     print("❌ No Daily.co meeting found.")
+    if len(sys.argv) >= 3:
+        url = sys.argv[1]
+        room_name = sys.argv[2]
+        log_path = init_terminal_logging(room_name)
+        meeting_time_utc = datetime.now(timezone.utc)  # assume join now
+        join_daily(meeting_time_utc, url)
+    else:
+        print("❌ Please provide room URL and name as arguments.")
