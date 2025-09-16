@@ -36,24 +36,55 @@ def launch_room_bot(room_url, room_name):
         print(f"🚀 Launching subprocess: {python_exec} {main_path} {room_url} {room_name}")
         
         try:
-            # Use subprocess.Popen with stdout/stderr streaming to parent terminal
-            # This allows all subprocess logs to appear in Northflank terminal
+            # Debug: Print exact command and paths
+            print(f"🔍 Debug info:")
+            print(f"   Python executable: {python_exec}")
+            print(f"   Main script path: {main_path}")
+            print(f"   Working directory: {os.path.dirname(__file__)}")
+            print(f"   Script exists: {os.path.exists(main_path)}")
+            print(f"   Script is readable: {os.access(main_path, os.R_OK)}")
+            
+            # Test if we can import main.py directly first
+            print(f"🧪 Testing direct import of main.py...")
+            try:
+                import sys
+                sys.path.insert(0, os.path.dirname(__file__))
+                import main
+                print(f"✅ Direct import successful")
+            except Exception as import_error:
+                print(f"❌ Direct import failed: {import_error}")
+                
+            # Try subprocess with better error capture
+            print(f"🚀 Launching subprocess with full error capture...")
             process = subprocess.Popen(
                 [python_exec, main_path, room_url, room_name],
-                stdout=None,  # Inherit parent's stdout (Northflank terminal)
-                stderr=None,  # Inherit parent's stderr (Northflank terminal)
-                cwd=os.path.dirname(__file__)  # Set working directory to code folder
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
+                text=True,
+                bufsize=1,  # Line buffered
+                universal_newlines=True,
+                cwd=os.path.dirname(__file__)
             )
             
             print(f"✅ Started subprocess with PID: {process.pid}")
-            print(f"📺 All subprocess logs will stream to this terminal")
             
-            # Optional: Wait a moment to check if process starts successfully
-            time.sleep(2)
-            if process.poll() is None:
-                print(f"✅ Process {process.pid} is running and streaming logs")
-            else:
-                print(f"❌ Process {process.pid} exited with code {process.returncode}")
+            # Stream output in real-time
+            print(f"📺 Streaming subprocess output:")
+            print("=" * 50)
+            
+            try:
+                for line in iter(process.stdout.readline, ''):
+                    if line:
+                        print(f"[BOT-{room_name}] {line.rstrip()}")
+                        
+                # Wait for process to complete and get return code
+                process.wait()
+                print("=" * 50)
+                print(f"🏁 Process {process.pid} completed with exit code: {process.returncode}")
+                
+            except Exception as stream_error:
+                print(f"❌ Error streaming output: {stream_error}")
+                process.terminate()
                     
         except Exception as e:
             print(f"❌ Failed to launch subprocess: {e}")
