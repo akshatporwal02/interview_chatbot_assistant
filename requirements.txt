@@ -20,7 +20,6 @@ playwright==1.39.0
 
 # Audio processing
 faster-whisper==0.9.0
-scipy==1.11.3
 
 # OpenAI and LLM
 openai==1.3.5

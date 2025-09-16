@@ -31,9 +31,9 @@ python -c "import cv2; print(f'✅ OpenCV {cv2.__version__} ready')" || {
 }
 
 # Verify audio dependencies
-echo "🔊 Verifying audio processing dependencies..."
-python -c "import librosa; print('✅ Audio processing ready')" || {
-    echo "❌ Audio processing verification failed"
+echo "🔊 Verifying audio transcription dependency (faster-whisper)..."
+python -c "from faster_whisper import WhisperModel; print('✅ faster-whisper ready')" || {
+    echo "❌ faster-whisper verification failed"
     exit 1
 }
 
