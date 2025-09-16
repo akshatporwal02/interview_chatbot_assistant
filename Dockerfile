@@ -66,6 +66,11 @@ RUN chmod +x /entrypoint.sh
 RUN chown -R pwuser:pwuser /app && \
     chown pwuser:pwuser /entrypoint.sh
 
+# Pre-create X11 socket directory for Xvfb when running as non-root
+RUN mkdir -p /tmp/.X11-unix && \
+    chmod 1777 /tmp/.X11-unix && \
+    chown root:root /tmp/.X11-unix
+
 # Switch to non-root user provided by base image
 USER pwuser
 
