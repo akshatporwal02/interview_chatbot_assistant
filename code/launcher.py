@@ -32,33 +32,7 @@ def launch_room_bot(room_url, room_name):
         python_exec = sys.executable or "python3"
         # Ensure we reference the correct path to main.py from project root in container
         main_path = os.path.join(os.path.dirname(__file__), "main.py")
-        
-        print(f"🚀 Launching subprocess: {python_exec} {main_path} {room_url} {room_name}")
-        
-        try:
-            # Use subprocess.Popen with stdout/stderr streaming to parent terminal
-            # This allows all subprocess logs to appear in Northflank terminal
-            process = subprocess.Popen(
-                [python_exec, main_path, room_url, room_name],
-                stdout=None,  # Inherit parent's stdout (Northflank terminal)
-                stderr=None,  # Inherit parent's stderr (Northflank terminal)
-                cwd=os.path.dirname(__file__)  # Set working directory to code folder
-            )
-            
-            print(f"✅ Started subprocess with PID: {process.pid}")
-            print(f"📺 All subprocess logs will stream to this terminal")
-            
-            # Optional: Wait a moment to check if process starts successfully
-            time.sleep(2)
-            if process.poll() is None:
-                print(f"✅ Process {process.pid} is running and streaming logs")
-            else:
-                print(f"❌ Process {process.pid} exited with code {process.returncode}")
-                    
-        except Exception as e:
-            print(f"❌ Failed to launch subprocess: {e}")
-            import traceback
-            traceback.print_exc()
+        subprocess.Popen([python_exec, main_path, room_url, room_name])
 
 
 if __name__ == "__main__":
