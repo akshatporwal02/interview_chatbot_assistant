@@ -49,7 +49,7 @@ python -c "from facenet_pytorch import MTCNN; print('✅ FaceNet ready')" || {
 
 # Verify audio dependencies
 echo "🔊 Verifying audio processing dependencies..."
-python -c "import scipy; print('✅ Audio processing ready')" || {
+python -c "import librosa; print('✅ Audio processing ready')" || {
     echo "❌ Audio processing verification failed"
     exit 1
 }
