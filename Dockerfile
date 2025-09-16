@@ -62,13 +62,12 @@ RUN mkdir -p /app/results /app/logs /app/screenshots /app/recordings
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app && \
-    chown appuser:appuser /entrypoint.sh
+# Set correct ownership to built-in Playwright user (pwuser)
+RUN chown -R pwuser:pwuser /app && \
+    chown pwuser:pwuser /entrypoint.sh
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root user provided by base image
+USER pwuser
 
 # Expose port (if needed for health checks)
 EXPOSE 8080
