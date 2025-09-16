@@ -27,7 +27,10 @@ def launch_room_bot(room_url, room_name):
             shell=True
         )
     else:  # macOS / Linux
-        subprocess.Popen(["gnome-terminal", "--", "python3", "main.py", room_url, room_name])
+        # In containers or servers, a graphical terminal like gnome-terminal is not available.
+        # Spawn the process directly using the current Python interpreter.
+        py = sys.executable or "python3"
+        subprocess.Popen([py, "main.py", room_url, room_name])
 
 
 if __name__ == "__main__":
