@@ -1,4 +1,4 @@
-import pyaudio
+# import pyaudio
 import wave
 from datetime import datetime
 from faster_whisper import WhisperModel
