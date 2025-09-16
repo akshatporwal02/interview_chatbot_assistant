@@ -5,6 +5,8 @@ playwright>=1.30.0
 opencv-python>=4.8.0
 numpy>=1.21.0
 pillow>=9.0.0
+facenet-pytorch>=2.5.3
+mediapipe>=0.10.11
 
 # Audio processing and transcription
 faster-whisper>=0.8.0

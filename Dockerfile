@@ -63,6 +63,7 @@ RUN apt-get update && apt-get install -y \
     # X11 and display dependencies
     xauth \
     x11-utils \
+    libgl1 \
     tmux \
     && rm -rf /var/lib/apt/lists/*
 
