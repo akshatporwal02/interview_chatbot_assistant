@@ -25,7 +25,7 @@ PyAudio==0.2.14
 # Report generation
 jinja2==3.1.2
 weasyprint==60.1
-pdfkit==1.2.0
+pdfkit==1.0.0
 matplotlib==3.7.2
 seaborn==0.12.2
 
