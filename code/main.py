@@ -426,18 +426,18 @@ def join_daily(meeting_time_utc, meeting_url):
             print("⚠️ No participants found, generating default report")
 
 if __name__ == "__main__":
-    # t, url = get_next_daily_meeting()
-    # if t and url:
-    #     room_name = urlparse(url).path.lstrip("/") or "session"
-    #     log_path = init_terminal_logging(room_name)
-    #     join_daily(t, url)
-    # else:
-    #     print("❌ No Daily.co meeting found.")
-    if len(sys.argv) >= 3:
-        url = sys.argv[1]
-        room_name = sys.argv[2]
-        log_path = init_terminal_logging(room_name)
-        meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-        join_daily(meeting_time_utc, url)
-    else:
-        print("❌ Please provide room URL and name as arguments.")
+    try:
+        print(f"[main.py] argv={sys.argv}", flush=True)
+        if len(sys.argv) >= 3:
+            url = sys.argv[1]
+            room_name = sys.argv[2]
+            print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
+            log_path = init_terminal_logging(room_name)
+            meeting_time_utc = datetime.now(timezone.utc)  # assume join now
+            join_daily(meeting_time_utc, url)
+        else:
+            print("❌ Please provide room URL and name as arguments.", flush=True)
+    except Exception as e:
+        import traceback
+        print(f"[main.py] Unhandled exception: {e}", flush=True)
+        traceback.print_exc()
