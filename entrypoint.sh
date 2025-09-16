@@ -9,7 +9,7 @@ Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
 export DISPLAY=:99
 
 # Wait for Xvfb to start
-sleep 3
+sleep 2
 
 # Set proper permissions for directories
 echo "📁 Setting up directories and permissions..."
@@ -30,23 +30,6 @@ python -c "import cv2; print(f'✅ OpenCV {cv2.__version__} ready')" || {
     exit 1
 }
 
-# Verify PyTorch and ML dependencies
-echo "🤖 Verifying ML dependencies..."
-python -c "import torch; print(f'✅ PyTorch {torch.__version__} ready (CPU: {not torch.cuda.is_available()})')" || {
-    echo "❌ PyTorch verification failed"
-    exit 1
-}
-
-python -c "import ultralytics; print('✅ YOLO ready')" || {
-    echo "❌ YOLO verification failed"
-    exit 1
-}
-
-python -c "from facenet_pytorch import MTCNN; print('✅ FaceNet ready')" || {
-    echo "❌ FaceNet verification failed"
-    exit 1
-}
-
 # Verify audio dependencies
 echo "🔊 Verifying audio processing dependencies..."
 python -c "import librosa; print('✅ Audio processing ready')" || {
@@ -54,10 +37,10 @@ python -c "import librosa; print('✅ Audio processing ready')" || {
     exit 1
 }
 
-# Verify OpenAI
-echo "🧠 Verifying OpenAI integration..."
-python -c "import openai; print('✅ OpenAI ready')" || {
-    echo "❌ OpenAI verification failed"
+# Verify ML dependencies
+echo "🤖 Verifying ML dependencies..."
+python -c "import torch, ultralytics; print('✅ ML dependencies ready')" || {
+    echo "❌ ML dependencies verification failed"
     exit 1
 }
 
@@ -65,8 +48,7 @@ python -c "import openai; print('✅ OpenAI ready')" || {
 export PYTHONUNBUFFERED=1
 export PYTHONDONTWRITEBYTECODE=1
 export OPENCV_LOG_LEVEL=ERROR
-export TORCH_HOME=/app/.torch
-export YOLO_CONFIG_DIR=/app/.yolo
+export PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Health check endpoint (optional)
 if [ "$1" = "health" ]; then
