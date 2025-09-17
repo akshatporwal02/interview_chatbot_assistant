@@ -11,7 +11,7 @@ class BrowserSession:
             page = session.page
     """
 
-    def __init__(self, headless: bool = True, permissions: Optional[List[str]] = None, extra_args: Optional[List[str]] = None):
+    def __init__(self, headless: bool = False, permissions: Optional[List[str]] = None, extra_args: Optional[List[str]] = None):
         self.headless = headless
         self.permissions = permissions or []
         # Add safe defaults for containerized Chromium
@@ -21,6 +21,12 @@ class BrowserSession:
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--no-zygote",
+            # Use fake devices and auto-allow media so prejoin is consistent in CI/containers
+            # "--use-fake-ui-for-media-stream",
+            # "--use-fake-device-for-media-stream",
+            # Improve startup stability in headless
+            #"--no-first-run",
+            #"--autoplay-policy=no-user-gesture-required",
         ]
         self.launch_args = default_args + (extra_args or [])
         self._playwright = None
