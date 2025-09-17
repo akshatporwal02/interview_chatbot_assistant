@@ -40,29 +40,46 @@ def fill_room_and_join(page: Page, daily_frame: Optional[Frame], meeting_url: st
 
     # Step 6: Now switch to the Daily iframe. If not provided or not yet available, resolve it now.
     if not daily_frame:
+        # Wait for iframes to appear before scanning
+        try:
+            page.wait_for_selector("iframe", timeout=15000, state="attached")
+        except Exception:
+            pass
         # Poll for the correct iframe without throwing, up to ~15s
-        # Prefer a frame whose URL contains 'daily' or that contains the username input
+        # Prefer the frame that actually contains the username/continue controls
         for _ in range(15):
             try:
                 frames = page.frames
                 # Log frame URLs for diagnostics
                 try:
-                    urls = [f.url for f in frames]
+                    urls = [getattr(f, "url", "<no-url>") for f in frames]
                     print(f"[join_flow] Found {len(frames)} frames: {urls}")
                 except Exception:
                     pass
 
-                # Heuristic 1: pick by URL
-                candidate = next((f for f in frames if "daily" in (f.url or "") or "daily.co" in (f.url or "")), None)
-                if not candidate:
-                    # Heuristic 2: pick the frame that actually has the username input
-                    for f in frames:
-                        try:
-                            if f.query_selector("input#username"):
-                                candidate = f
-                                break
-                        except Exception:
+                # First preference: frames that visibly contain username or Continue controls
+                visible_matches = []
+                for f in frames:
+                    try:
+                        # short waits per frame so we don't block too long overall
+                        if f.wait_for_selector("input#username", timeout=500, state="visible"):
+                            visible_matches.append(f)
                             continue
+                    except Exception:
+                        pass
+                    try:
+                        if f.wait_for_selector('button:has-text("Continue")', timeout=500, state="visible"):
+                            visible_matches.append(f)
+                    except Exception:
+                        pass
+
+                candidate = None
+                if visible_matches:
+                    # If more than one, prefer the one whose URL mentions daily
+                    candidate = next((f for f in visible_matches if "daily" in (getattr(f, "url", "") or "") or "daily.co" in (getattr(f, "url", "") or "")), visible_matches[0])
+                else:
+                    # Fallback: Heuristic by URL if nothing visible yet
+                    candidate = next((f for f in frames if "daily" in (getattr(f, "url", "") or "") or "daily.co" in (getattr(f, "url", "") or "")), None)
 
                 if candidate:
                     daily_frame = candidate
@@ -76,8 +93,8 @@ def fill_room_and_join(page: Page, daily_frame: Optional[Frame], meeting_url: st
 
     print("[join_flow] Setting username in Daily prejoin...")
     try:
-        # Some headless runs have visibility quirks; wait for attachment first
-        daily_frame.wait_for_selector("input#username", timeout=20000, state="attached")
+        # Some headless runs have visibility quirks; wait until the input is visible
+        daily_frame.wait_for_selector("input#username", timeout=20000, state="visible")
     except Exception as e:
         # Diagnostics: take a page screenshot and log frame URL/content length
         try:
