@@ -93,8 +93,32 @@ def fill_room_and_join(page: Page, daily_frame: Optional[Frame], meeting_url: st
 
     print("[join_flow] Setting username in Daily prejoin...")
     try:
-        # Some headless runs have visibility quirks; wait until the input is visible
-        daily_frame.wait_for_selector("input#username", timeout=20000, state="visible")
+        # Wait for iframe content to be fully loaded first
+        print("[join_flow] Waiting for Daily iframe content to load...")
+        daily_frame.wait_for_load_state("domcontentloaded", timeout=15000)
+        
+        # Wait for Daily's JavaScript to initialize and render the prejoin form
+        print("[join_flow] Waiting for Daily prejoin form to render...")
+        
+        # First, wait for any form elements to appear (indicates UI is starting to render)
+        form_appeared = False
+        for _ in range(30):  # Wait up to 30 seconds
+            try:
+                # Check if any form-related elements exist
+                if daily_frame.query_selector("input") or daily_frame.query_selector("form") or daily_frame.query_selector("button"):
+                    form_appeared = True
+                    print("[join_flow] Form elements detected in iframe")
+                    break
+            except Exception:
+                pass
+            page.wait_for_timeout(1000)
+        
+        if not form_appeared:
+            print("[join_flow] Warning: No form elements detected after 30s, proceeding anyway...")
+        
+        # Now wait specifically for the username input with extended timeout
+        print("[join_flow] Waiting for username input to be visible...")
+        daily_frame.wait_for_selector("input#username", timeout=30000, state="visible")
     except Exception as e:
         # Diagnostics: take a page screenshot and log frame URL/content length
         try:
