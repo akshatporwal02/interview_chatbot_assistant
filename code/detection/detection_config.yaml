@@ -1,4 +1,3 @@
-
 detection:
   face:
     detection_interval: 5    # frames
