@@ -10,6 +10,13 @@ detection:
     consecutive_frames: 2      # frames for gaze change detection
   multi_face:
     alert_threshold: 1     # frames
+    # MediaPipe Face Detection parameters
+    model_selection: 1                 # 0: short-range (2m), 1: full-range
+    min_detection_confidence: 0.5      # raise for fewer false positives, lower for higher recall
+    upscale_factor: 1.0                # 1.0 = no upscale; 1.5-2.0 can help tiny faces (slower)
+    min_area_px: 600                   # ignore tiny detections under this pixel area
+    show_debug_sources: false          # draw per-source boxes (only MediaPipe here)
+    show_final_green: true             # draw final green boxes used for counting
   objects:
     # Model and inference settings
     model_path: "/app/models/yolov8l.pt"   # baked into image by Dockerfile
