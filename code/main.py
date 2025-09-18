@@ -293,7 +293,7 @@ def join_daily(meeting_time_utc, meeting_url):
                             else:
                                 print("⚠️ Could not fetch final meeting info.")
 
-                            time.sleep(2)
+                            time.sleep(0.5)
                             if daily_frame:
                                 try:
                                     stop_recording_and_leave(daily_frame)
