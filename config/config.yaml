@@ -1,3 +1,4 @@
+
 logging:
   log_path: "./session_data/logs"
   alert_cooldown: 10          # seconds
@@ -9,7 +10,8 @@ global:
 reporting:
    image_dir: "./reports/generated/images"  # New subdirectory for images
    output_dir: "./reports/generated"
-   wkhtmltopdf_path: "C:\\Users\\aksha\\OneDrive\\Desktop\\ICA\\interview_chatbot_assistant\\code\\report_generation\\wkhtmltopdf\\bin\\wkhtmltopdf.exe"
+   # Leave blank to use wkhtmltopdf from PATH (recommended for Docker/Linux). Set an absolute path on Windows if needed.
+   wkhtmltopdf_path: ""
    rating_thresholds:
       TOTAL VIOLATIONS:
          critical: 7

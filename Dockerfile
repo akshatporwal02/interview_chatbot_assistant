@@ -6,6 +6,10 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:99
+# Model/cache locations to persist within the image (or mount a volume here at runtime)
+ENV ULTRALYTICS_CACHE_DIR=/app/models/ultralytics
+ENV HF_HOME=/app/models/hf_cache
+ENV CT2_CACHE_DIR=/app/models/ct2_cache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -34,6 +38,8 @@ RUN apt-get update && apt-get install -y \
     fluxbox \
     # Process management
     supervisor \
+    # Utilities
+    curl \
     # Cleanup
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -56,7 +62,21 @@ RUN playwright install chromium && \
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p /app/results /app/logs /app/screenshots /app/recordings
+RUN mkdir -p /app/results /app/logs /app/screenshots /app/recordings \
+    && mkdir -p /app/models /app/models/ultralytics /app/models/hf_cache /app/models/ct2_cache
+
+# Pre-download and cache model weights at build time to avoid runtime downloads
+# 1) YOLOv8l weights
+RUN curl -L -o /app/models/yolov8l.pt \
+    https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8l.pt
+
+# 2) Faster-Whisper medium model (CT2 format) will populate CT2_CACHE_DIR
+RUN python - <<'PY'
+from faster_whisper import WhisperModel
+print('Downloading faster-whisper medium model to cache...')
+WhisperModel('medium', device='cpu', compute_type='int8')
+print('Done.')
+PY
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

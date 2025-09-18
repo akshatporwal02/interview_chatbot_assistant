@@ -1,3 +1,4 @@
+
 detection:
   face:
     detection_interval: 5    # frames
@@ -8,10 +9,10 @@ detection:
     # gaze_sensitivity: 15       # pixels threshold for gaze detection
     consecutive_frames: 2      # frames for gaze change detection
   multi_face:
-    alert_threshold: 3      # frames
+    alert_threshold: 1     # frames
   objects:
     # Model and inference settings
-    model_path: "models/yolov8l.pt"   # relative to repo root (code/../models)
+    model_path: "/app/models/yolov8l.pt"   # baked into image by Dockerfile
     imgsz: 960                         # input size for YOLO
     base_conf: 0.5                     # base confidence used by YOLO
     iou: 0.6                           # NMS IoU threshold
@@ -50,4 +51,3 @@ detection:
     # chunk_size: 4096
     whisper_enabled: true  # Enable only when needed
     whisper_model: "medium"
-    

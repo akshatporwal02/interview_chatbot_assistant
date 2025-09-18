@@ -101,15 +101,11 @@ class ReportGenerator:
             template = self.template_env.get_template('base_report.html')
             html_content = template.render(report_data)
 
-            # Filename (mirror transcript pattern: room + session; include student ID when present)
+            # Filename (mirror transcript pattern: room + session; exclude student ID)
             timestamp = (meeting_info or {}).get('session_timestamp') or datetime.now().strftime("%Y-%m-%d_%H%M%S")
             room_name = (meeting_info or {}).get('room_name') or (meeting_info or {}).get('room') or "unknown_room"
-            student_id = (str(student_info.get('id') or "")).strip()
-
-            if student_id:
-                filename = f"report_{room_name}_{student_id}_{timestamp}"
-            else:
-                filename = f"report_{room_name}_{timestamp}"
+            
+            filename = f"report_{room_name}_{timestamp}"
 
             output_path = os.path.join(self.output_dir, f"{filename}.{output_format.lower()}")
 
@@ -123,8 +119,12 @@ class ReportGenerator:
                     'margin-bottom': '10mm',
                     'margin-left': '10mm'
                 }
+                # Prefer configured wkhtmltopdf path if it exists; otherwise fall back to PATH
                 pdfkit_path = self.config.get('wkhtmltopdf_path')
-                pdf_config = pdfkit.configuration(wkhtmltopdf=pdfkit_path) if pdfkit_path else None
+                pdf_config = None
+                if pdfkit_path and os.path.exists(pdfkit_path):
+                    pdf_config = pdfkit.configuration(wkhtmltopdf=pdfkit_path)
+                # If no config provided or path doesn't exist, pdfkit will try to use wkhtmltopdf from PATH
                 pdfkit.from_string(html_content, output_path, configuration=pdf_config, options=options)
             else:
                 with open(output_path, 'w', encoding='utf-8') as f:
@@ -135,21 +135,45 @@ class ReportGenerator:
 
         except Exception as e:
             self.logger.error(f"Failed to generate report: {str(e)}")
+            # Provide hints depending on platform/config
+            wk = self.config.get('wkhtmltopdf_path')
+            if wk and not os.path.exists(wk):
+                self.logger.error(f"Configured wkhtmltopdf path does not exist: {wk}. On Linux/Docker, install wkhtmltopdf in the image and leave this config empty.")
+            else:
+                self.logger.error("Ensure wkhtmltopdf is installed and available on PATH, or set reporting.wkhtmltopdf_path to a valid executable.")
             return None
 
     def _calculate_stats(self, violations):
         """Calculate summary statistics from violations, including ratings."""
+        # Define all possible suspicious activities
+        all_activities = [
+            'FACE_DISAPPEARED',
+            'MULTIPLE_FACES', 
+            'FORBIDDEN_OBJECT',
+            'EYE_MOVEMENT'
+            
+           
+        ]
+        
         stats = {
             'total': len(violations),
             'by_type': {},
             'timeline': [],
             'severity_score': 0,
-            'ratings': {}
+            'ratings': {},
+            'all_activities': all_activities
         }
+
+        # Initialize all activities with 0 count and Low criticality
+        for activity in all_activities:
+            stats['by_type'][activity] = 0
+            stats['ratings'][activity] = 'Low'
 
         rating_rules = self.config.get("rating_thresholds", {})
 
         def rate(activity, count):
+            if count == 0:
+                return "Low"
             rules = rating_rules.get(activity, {"critical": 5, "major": 3, "medium": 2})
             if count >= rules["critical"]:
                 return "Critical"
@@ -160,11 +184,13 @@ class ReportGenerator:
             else:
                 return "Low"
 
+        # Count actual violations
         for v in violations:
             v_type = v['type']
             if v_type == "FACE_REAPPEARED":
                 continue
-            stats['by_type'][v_type] = stats['by_type'].get(v_type, 0) + 1
+            if v_type in stats['by_type']:
+                stats['by_type'][v_type] += 1
             stats['timeline'].append({
                 'time': v['timestamp'],
                 'type': v_type,
@@ -176,16 +202,12 @@ class ReportGenerator:
             stats['severity_score'] / stats['total'] if stats['total'] else 0
         )
 
-        for v_type, count in stats['by_type'].items():
-            stats['ratings'][v_type] = rate(v_type, count)
+        # Update ratings for all activities
+        for activity in all_activities:
+            count = stats['by_type'][activity]
+            stats['ratings'][activity] = rate(activity, count)
 
         # Overall remark based on presence of any severity level
-        # Rules:
-        # - Any Critical -> "Extremely Poor"
-        # - Else any Major -> "Poor"
-        # - Else any Medium -> "Good"
-        # - Else if no violations -> "Excellent"
-        # - Else (only Low present) -> "Average"
         if stats['total'] == 0:
             stats['overall_remark'] = "Excellent"
         else:
@@ -208,14 +230,9 @@ class ReportGenerator:
             'FACE_DISAPPEARED': 'Face Detection Violations',
             'MULTIPLE_FACES': 'Multiple Faces Detected',
             'FORBIDDEN_OBJECT': 'Forbidden Objects Detected',
-            'OBJECT_DETECTION_ERROR': 'Detection System Errors',
             'EYE_MOVEMENT': 'Eye Tracking Violations',
-            'EYE_TRACKING_ERROR': 'Detection System Errors',
-            'AUDIO_DETECTED': 'Audio Violations',
-            'MOVEMENT_DETECTED': 'Movement Violations',
-            'SUSPICIOUS_ACTIVITY': 'Suspicious Activity',
-            'PHONE_DETECTED': 'Phone Detection',
-            'PERSON_DETECTED': 'Person Detection'
+            'EYE_TRACKING_ERROR': 'Detection System Errors'
+            
         }
         for v in violations:
             v_type = v['type']
@@ -263,3 +280,4 @@ class ReportGenerator:
         except Exception as e:
             self.logger.error(f"Failed to generate timeline: {str(e)}")
             return None
+

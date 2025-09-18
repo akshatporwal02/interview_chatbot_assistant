@@ -35,8 +35,16 @@ class ObjectDetector:
             from pathlib import Path
             model_cfg = self.config.get('model_path', 'models/yolov8l.pt')
             # If config path is relative, resolve relative to repo root (code/..)
-            model_path = Path(__file__).resolve().parents[1] / model_cfg if not Path(model_cfg).is_absolute() else Path(model_cfg)
-            self.model = YOLO(str(model_path))
+            model_path = (
+                Path(__file__).resolve().parents[1] / model_cfg
+                if not Path(model_cfg).is_absolute() else Path(model_cfg)
+            )
+            # If the path exists, load from file. Otherwise, pass the original string
+            # (model name) to YOLO so it can leverage its cache/download mechanism.
+            if model_path.exists():
+                self.model = YOLO(str(model_path))
+            else:
+                self.model = YOLO(str(model_cfg))
 
             # Optimize model settings from config
             # Ultralytics does not support 'dml' device string; use CUDA if available else CPU

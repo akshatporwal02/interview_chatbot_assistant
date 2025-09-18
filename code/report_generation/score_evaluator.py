@@ -62,10 +62,14 @@ Attitude (i)        : Polite / Harsh / Rude / N/A
                       Short description
 
 Result
-Status  : Go Ahead / Rejected / On Hold / Re-Evaluation / No Show
+Status  : Go Ahead / Rejected / On Hold / Re-Evaluation / HR's call
           (⚠️ Status must be decided only from Overall Remark, not from suspicious activity.)
+          (📌 Exception: If both candidate and interviewer joined but there is effectively no conversation in transcript,
+           choose exactly: HR's call)
 Summary : <Short concise summary>
-AI Remarks: <Provide 4-5 words only capturing the essence of the summary>
+AI Remarks: <Provide 7-10 words>
+            (📌 If Status is HR's call, set a neutral remark like:
+             "Neither interviewer nor candidate participated; HR to decide.")
 """
 
 
@@ -195,6 +199,16 @@ def parse_llm_response(llm_response: str):
             except Exception:
                 pass
 
+        # 🔒 Enforce standardized AI remark if HR's call was selected
+        try:
+            if decision and isinstance(decision, dict):
+                rec = str(decision.get("recommendation", "")).strip().lower()
+                if rec.startswith("hr"):
+                    # 8 words (within 7-10 window)
+                    decision["ai_remarks"] = "Neither interviewer nor candidate spoke; HR to decide."
+        except Exception:
+            pass
+
     except Exception as e:
         print(f"⚠️ Error parsing LLM response: {e}")
         candidate_analysis = [{"criteria": "Parsing Error", "value": "N/A", "score": None, "explanation": ""}]
@@ -227,6 +241,55 @@ def analyze_transcript(room_name: str) -> str:
         if logs_files:
             logs_path = Path(logs_files[-1])
             logs = logs_path.read_text(encoding="utf-8")
+
+        # Heuristic: detect if both parties likely joined but there is effectively no conversation
+        def likely_no_conversation(tx: str, lg: str) -> bool:
+            try:
+                tx_clean = re.sub(r"\s+", " ", (tx or "").strip())
+                # Very short or non-verbal transcript
+                no_textual_dialogue = len(tx_clean) < 30 or not re.search(r"[A-Za-z]", tx_clean)
+                # Few tokens or no speaker separators
+                minimal_tokens = len(tx_clean.split()) < 6
+                lacks_dialogue_markers = not re.search(r":|- ", tx_clean)
+
+                lg_lower = (lg or "").lower()
+                joined_signals = sum(
+                    1 for k in [
+                        "candidate joined", "interviewer joined", "joined the call", "participant joined", "both joined"
+                    ] if k in lg_lower
+                )
+
+                # Consider no conversation if transcript is basically empty AND there are at least two join indications
+                return (no_textual_dialogue or minimal_tokens or lacks_dialogue_markers) and (joined_signals >= 2 or "both joined" in lg_lower)
+            except Exception:
+                return False
+
+        if likely_no_conversation(transcript, logs):
+            # Short-circuit LLM; produce deterministic, neutral HR's call block respecting required format
+            return (
+                "Candidate Evaluation\n"
+                "Overall Remark      : N/A\n"
+                "\n"
+                "Communication Skills: N/A\n"
+                "\n"
+                "Technical Skills    : N/A\n"
+                "\n"
+                "Attitude            : Neutral\n"
+                "  No conversation to evaluate.\n"
+                "\n"
+                "Interviewer Evaluation\n"
+                "Questions Asked (i) : N/A\n"
+                "  No questions recorded.\n"
+                "Difficulty Level (i): N/A\n"
+                "  No discussion captured.\n"
+                "Attitude (i)        : N/A\n"
+                "  Insufficient data.\n"
+                "\n"
+                "Result\n"
+                "Status  : HR's call\n"
+                "Summary : Both joined but no discussion recorded; escalate to HR.\n"
+                "AI Remarks: Neither interviewer nor candidate spoke; HR to decide.\n"
+            )
 
         prompt = EVAL_PROMPT_TEMPLATE.format(
             transcript=transcript.strip(),
