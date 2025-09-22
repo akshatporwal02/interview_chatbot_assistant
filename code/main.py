@@ -137,7 +137,7 @@ def join_daily(meeting_time_utc, meeting_url):
             print("✅ Joined Daily room via automation module")
             join_time_ist = utc_to_ist(datetime.now(timezone.utc))
             print(f"🕒 Bot JOINED meeting at: {join_time_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
-            page.wait_for_timeout(30000)
+            # page.wait_for_timeout(30000)
             frame = get_daily_frame(page)
             try:
                 frame.wait_for_selector('#btn-leave', timeout=15000)

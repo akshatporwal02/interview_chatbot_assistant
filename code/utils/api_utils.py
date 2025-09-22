@@ -2,8 +2,15 @@ import requests
 from typing import Literal, Optional, Dict, Any, List, Tuple
 from datetime import datetime, timezone
 import time
+import re
 
 DAILY_API_BASE = "https://api.daily.co/v1"
+
+def _normalize_name(s: Optional[str]) -> str:
+    """Lowercase and strip all non-alphanumeric characters for robust comparisons."""
+    if not s:
+        return ""
+    return re.sub(r"[^a-z0-9]+", "", s.lower())
 
 
 def get_daily_headers(api_key: str) -> Dict[str, str]:
@@ -44,8 +51,10 @@ def is_meeting_ongoing(room_name: str, headers: Dict[str, str]) -> Literal["bot_
     try:
         participants = get_room_presence(room_name, headers)
         for p in participants:
-            name = (p.get("userName") or p.get("user_name") or p.get("name") or "").strip()
-            if name == "Strata(Bot)":
+            raw_name = (p.get("userName") or p.get("user_name") or p.get("name") or "").strip()
+            norm = _normalize_name(raw_name)
+            # Treat any name containing both 'strata' and 'bot' (order-agnostic) as the bot
+            if ("strata" in norm) and ("bot" in norm):
                 return "bot_present"
     except Exception:
         pass
@@ -108,7 +117,14 @@ def get_active_participants(room_name: str, headers: Dict[str, str]) -> List[Dic
     try:
         res = requests.get(url, headers=headers)
         data = res.json().get("data", [])
-        filtered = [p for p in data if p.get("userName") not in ["Strata(Bot)"]]
+        # Exclude bot regardless of spaces/punctuation (e.g., "Strata (Bot)", "Strata(Bot)")
+        filtered: List[Dict[str, Any]] = []
+        for p in data:
+            raw = (p.get("userName") or p.get("user_name") or p.get("name") or "").strip()
+            norm = _normalize_name(raw)
+            if ("strata" in norm) and ("bot" in norm):
+                continue
+            filtered.append(p)
         return filtered
     except Exception:
         return []

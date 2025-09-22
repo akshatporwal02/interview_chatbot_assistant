@@ -63,6 +63,9 @@
       background:#f9fbfd;
     }
     .legend-box h2{ margin-top:0; color:#EC8E00; }
+    .section, .header, .legend-box, table, .violation-group {
+      page-break-inside: avoid;
+    }
     .critical{ color:red; font-weight:bold; }
     .major{ color:orange; font-weight:bold; }
     .medium{ color:#f39c12; font-weight:bold; }
@@ -83,7 +86,7 @@
       <span class="status-on-hold">{{ status }}</span>
     {% elif status.lower() == 're-evaluation' %}
       <span class="status-re-evaluation">{{ status }}</span>
-    {% elif status.lower() == "hr's call" or status.lower() == 'hr to decide' %}
+    {% elif status.lower() == "HR's call" or status.lower() == 'hr to decide' %}
       <span class="status-hr-call">{{ status }}</span>
     {% else %}
       {{ status }}

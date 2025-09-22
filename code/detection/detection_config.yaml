@@ -1,6 +1,6 @@
 detection:
   face:
-    detection_interval: 5    # frames
+    detection_interval: 1    # frames
     min_confidence: 0.8
   eye_tracking:
     gaze_threshold: 2          # seconds

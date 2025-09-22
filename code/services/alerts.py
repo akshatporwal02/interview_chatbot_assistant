@@ -38,7 +38,8 @@ class AlertLogger:
 
         # Screenshot capture if frame given
         image_path = None
-        if frame is not None and self.capturer:
+        # Do NOT capture screenshots for FACE_REAPPEARED; they are not useful for reports
+        if (frame is not None) and self.capturer and (alert_type.upper() != "FACE_REAPPEARED"):
             result = self.capturer.capture_violation(frame, alert_type, timestamp)
             image_path = result.get('image_path')
 
@@ -56,8 +57,8 @@ class AlertLogger:
         with open(log_file, "a") as f:
             f.write(log_entry + "\n")
 
-        # Add to violations list
-        if self.violations_list is not None:
+        # Add to violations list, except FACE_REAPPEARED which should be omitted from reports
+        if self.violations_list is not None and (alert_type.upper() != "FACE_REAPPEARED"):
             self.violations_list.append({
                 "type": alert_type,
                 "message": message,
