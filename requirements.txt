@@ -34,6 +34,4 @@ matplotlib==3.7.2
 colorama==0.4.6
 tqdm==4.66.1
 
-# Webhook server
-fastapi==0.110.0
-uvicorn[standard]==0.29.0
+
