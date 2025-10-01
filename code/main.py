@@ -442,7 +442,7 @@ if __name__ == "__main__":
                     # Treat as room name and construct URL from env
                     room_name = arg
                     base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
-                        f"https://{os.getenv('DAILY_DOMAIN')}" if os.getenv('DAILY_DOMAIN') else None
+                        f"https://{process.env.DAILY_DOMAIN}" if process.env.DAILY_DOMAIN else None
                     )
                     if base_url:
                         base_url = base_url.rstrip("/")
@@ -454,12 +454,12 @@ if __name__ == "__main__":
         # Priority 2: Environment variables (if CLI missing/incomplete)
         if not url:
             url = (
-                os.getenv("MEETING_URL")
-                or os.getenv("ROOM_URL")
-                or os.getenv("DAILY_MEETING_URL")
+                os.environ.get("MEETING_URL")
+                or os.environ.get("ROOM_URL")
+                or os.environ.get("DAILY_MEETING_URL")
             )
         if not room_name:
-            room_name = os.getenv("ROOM_NAME")
+            room_name = process.env.ROOM_NAME
 
         # Derive room_name from URL if still missing
         if url and not room_name:
@@ -470,9 +470,9 @@ if __name__ == "__main__":
 
         # If we have only room_name, try to construct the meeting URL from env
         if not url and room_name:
-            base_url = os.getenv("DAILY_ROOM_BASE_URL")  # e.g., https://yourteam.daily.co
+            base_url = os.environ.get("DAILY_ROOM_BASE_URL")  # e.g., https://yourteam.daily.co
             if not base_url:
-                daily_domain = os.getenv("DAILY_DOMAIN")  # e.g., yourteam.daily.co
+                daily_domain = os.environ.get("DAILY_DOMAIN")  # e.g., yourteam.daily.co
                 if daily_domain:
                     base_url = f"https://{daily_domain}"
             if base_url:
