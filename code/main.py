@@ -428,15 +428,72 @@ def join_daily(meeting_time_utc, meeting_url):
 if __name__ == "__main__":
     try:
         print(f"[main.py] argv={sys.argv}", flush=True)
-        if len(sys.argv) >= 3:
-            url = sys.argv[1]
-            room_name = sys.argv[2]
+        url = None
+        room_name = None
+
+        # Priority 1: CLI args
+        if len(sys.argv) >= 2:
+            # If only one arg is provided, try to detect if it's a URL or a room name
+            if len(sys.argv) == 2:
+                arg = sys.argv[1]
+                if arg.startswith("http://") or arg.startswith("https://"):
+                    url = arg
+                else:
+                    # Treat as room name and construct URL from env
+                    room_name = arg
+                    base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
+                        f"https://{os.getenv('DAILY_DOMAIN')}" if os.getenv('DAILY_DOMAIN') else None
+                    )
+                    if base_url:
+                        base_url = base_url.rstrip("/")
+                        url = f"{base_url}/{room_name}"
+            elif len(sys.argv) >= 3:
+                url = sys.argv[1]
+                room_name = sys.argv[2]
+
+        # Priority 2: Environment variables (if CLI missing/incomplete)
+        if not url:
+            url = (
+                os.getenv("MEETING_URL")
+                or os.getenv("ROOM_URL")
+                or os.getenv("DAILY_MEETING_URL")
+            )
+        if not room_name:
+            room_name = os.getenv("ROOM_NAME")
+
+        # Derive room_name from URL if still missing
+        if url and not room_name:
+            try:
+                room_name = urlparse(url).path.lstrip("/")
+            except Exception:
+                room_name = None
+
+        # If we have only room_name, try to construct the meeting URL from env
+        if not url and room_name:
+            base_url = os.getenv("DAILY_ROOM_BASE_URL")  # e.g., https://yourteam.daily.co
+            if not base_url:
+                daily_domain = os.getenv("DAILY_DOMAIN")  # e.g., yourteam.daily.co
+                if daily_domain:
+                    base_url = f"https://{daily_domain}"
+            if base_url:
+                base_url = base_url.rstrip("/")
+                url = f"{base_url}/{room_name}"
+
+        if url and room_name:
             print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
             log_path = init_terminal_logging(room_name)
             meeting_time_utc = datetime.now(timezone.utc)  # assume join now
             join_daily(meeting_time_utc, url)
         else:
-            print("❌ Please provide room URL and name as arguments.", flush=True)
+            print(
+                "❌ Please provide room URL and name.\n"
+                "   Options:\n"
+                "   - CLI: python code/main.py <MEETING_URL> <ROOM_NAME>\n"
+                "   - Env: set MEETING_URL (or ROOM_URL/DAILY_MEETING_URL) and optional ROOM_NAME\n"
+                "   - Webhook style (room only): set ROOM_NAME, plus DAILY_ROOM_BASE_URL (e.g., https://yourteam.daily.co)\n"
+                "     or DAILY_DOMAIN (e.g., yourteam.daily.co) to construct the URL",
+                flush=True,
+            )
     except Exception as e:
         import traceback
         print(f"[main.py] Unhandled exception: {e}", flush=True)
