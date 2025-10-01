@@ -459,7 +459,7 @@ if __name__ == "__main__":
                 or os.environ.get("DAILY_MEETING_URL")
             )
         if not room_name:
-            room_name = process.env.ROOM_NAME
+            room_name = os.environ.get("ROOM_NAME")
 
         # Derive room_name from URL if still missing
         if url and not room_name:
