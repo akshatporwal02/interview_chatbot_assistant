@@ -1,5 +1,5 @@
 # Multi-stage build for optimized Northflank deployment
-FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy as base
+FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -91,14 +91,14 @@ RUN mkdir -p /tmp/.X11-unix && \
     chmod 1777 /tmp/.X11-unix && \
     chown root:root /tmp/.X11-unix
 
-# Switch to non-root user provided by base image
 USER pwuser
 
 # Expose port (if needed for health checks)
 EXPOSE 8080
 
+
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command
-CMD ["python", "code/launcher.py"]
+CMD ["python", "code/main.py"]
