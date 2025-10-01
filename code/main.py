@@ -427,36 +427,43 @@ def join_daily(meeting_time_utc, meeting_url):
 
 if __name__ == "__main__":
     try:
-        print(f"[main.py] argv={sys.argv}", flush=True)
+        # print(f"[main.py] argv={sys.argv}", flush=True)
         url = None
         room_name = None
 
         # Priority 1: CLI args
-        if len(sys.argv) >= 2:
-            # If only one arg is provided, try to detect if it's a URL or a room name
-            if len(sys.argv) == 2:
-                arg = sys.argv[1]
-                if arg.startswith("http://") or arg.startswith("https://"):
-                    url = arg
-                else:
-                    # Treat as room name and construct URL from env
-                    room_name = arg
-                    base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
-                        f"https://{os.environ.get('DAILY_DOMAIN')}" if os.environ.get('DAILY_DOMAIN') else None
-                    )
-                    if base_url:
-                        base_url = base_url.rstrip("/")
-                        url = f"{base_url}/{room_name}"
-            elif len(sys.argv) >= 3:
-                url = sys.argv[1]
-                room_name = sys.argv[2]
+        # if len(sys.argv) >= 2:
+        #     # If only one arg is provided, try to detect if it's a URL or a room name
+        #     if len(sys.argv) == 2:
+        #         arg = sys.argv[1]
+        #         if arg.startswith("http://") or arg.startswith("https://"):
+        #             url = arg
+        #         else:
+        #             # Treat as room name and construct URL from env
+        #             room_name = arg
+        #             base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
+        #                 f"https://{os.environ.get('DAILY_DOMAIN')}" if os.environ.get('DAILY_DOMAIN') else None
+        #             )
+        #             if base_url:
+        #                 base_url = base_url.rstrip("/")
+        #                 url = f"{base_url}/{room_name}"
+        #     elif len(sys.argv) >= 3:
+        #         url = sys.argv[1]
+        #         room_name = sys.argv[2]
 
         # Priority 2: Environment variables (if CLI missing/incomplete)
         if not url:
+            env_meeting = os.environ.get("MEETING_URL")
+            env_room_url = os.environ.get("ROOM_URL")
+            env_daily_meeting = os.environ.get("DAILY_MEETING_URL")
+            print(
+                f"[env] MEETING_URL={env_meeting} ROOM_URL={env_room_url} DAILY_MEETING_URL={env_daily_meeting}",
+                flush=True,
+            )
             url = (
-                os.environ.get("MEETING_URL")
-                or os.environ.get("ROOM_URL")
-                or os.environ.get("DAILY_MEETING_URL")
+                env_meeting
+                or env_room_url
+                or env_daily_meeting
             )
         if not room_name:
             room_name = os.environ.get("ROOM_NAME")
@@ -468,16 +475,11 @@ if __name__ == "__main__":
             except Exception:
                 room_name = None
 
-        # If we have only room_name, try to construct the meeting URL from env
+        # If we have only room_name, construct the meeting URL by appending to fixed base
         if not url and room_name:
-            base_url = os.environ.get("DAILY_ROOM_BASE_URL")  # e.g., https://yourteam.daily.co
-            if not base_url:
-                daily_domain = os.environ.get("DAILY_DOMAIN")  # e.g., yourteam.daily.co
-                if daily_domain:
-                    base_url = f"https://{daily_domain}"
-            if base_url:
-                base_url = base_url.rstrip("/")
-                url = f"{base_url}/{room_name}"
+            base_url = "https://candidly.concret.io"
+            base_url = base_url.rstrip("/")
+            url = f"{base_url}/{room_name}"
 
         if url and room_name:
             print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
