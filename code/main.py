@@ -442,7 +442,7 @@ if __name__ == "__main__":
                     # Treat as room name and construct URL from env
                     room_name = arg
                     base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
-                        f"https://{os.environ.get("DAILY_DOMAIN")}" if os.environ.get("DAILY_DOMAIN") else None
+                        f"https://{os.environ.get('DAILY_DOMAIN')}" if os.environ.get('DAILY_DOMAIN') else None
                     )
                     if base_url:
                         base_url = base_url.rstrip("/")
