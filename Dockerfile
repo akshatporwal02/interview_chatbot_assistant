@@ -100,5 +100,5 @@ EXPOSE 8080
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Default command
-CMD ["python", "code/main.py"]
+# # Default command
+# CMD ["python", "code/main.py"]

@@ -430,15 +430,23 @@ if __name__ == "__main__":
     try:
         print(f"[main.py] argv={sys.argv}", flush=True)
 
-        # Support flags from entrypoint, positional args, and env fallbacks
-        parser = argparse.ArgumentParser(add_help=False)
-        parser.add_argument("positional", nargs="*")
-        parser.add_argument("--url", dest="flag_url")
-        parser.add_argument("--room", dest="flag_room")
-        args, _unknown = parser.parse_known_args()
+        # # Support flags from entrypoint, positional args, and env fallbacks
+        # parser = argparse.ArgumentParser(add_help=False)
+        # parser.add_argument("positional", nargs="*")
+        # parser.add_argument("--url", dest="flag_url")
+        # parser.add_argument("--room", dest="flag_room")
+        # args, _unknown = parser.parse_known_args()
 
-        url = args.flag_url
-        room_name = args.flag_room
+        # url = args.flag_url
+        # room_name = args.flag_room
+
+        if len(sys.argv) >= 2:
+           room_url = sys.argv[1]
+           room_name = sys.argv[2]
+        else:
+           # Fallback to environment variables if no command line args
+           room_url = os.getenv('ROOM_URL')
+           room_name = os.getenv('ROOM_NAME')
 
         # Positional: <ROOM_URL> <ROOM_NAME>
         if (not url or not room_name) and len(args.positional) >= 2:

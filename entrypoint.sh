@@ -74,19 +74,19 @@ echo "📝 Command: $@"
 
 # entrypoint.sh
 # Read environment variables passed from the webhook service
-MEETING_ID=${MEETING_ID:-""}
+ROOM_URL=${ROOM_URL:-""}
 ROOM_NAME=${ROOM_NAME:-""}
 
 # Validate that required parameters are present
-if [ -z "$MEETING_ID" ] || [ -z "$ROOM_NAME" ]; then
-    echo "Error: MEETING_ID and ROOM_NAME environment variables are required"
+if [ -z "$ROOM_URL" ] || [ -z "$ROOM_NAME" ]; then
+    echo "Error: ROOM_URL and ROOM_NAME environment variables are required"
     exit 1
 fi
 
-echo "Starting job with Meeting ID: $MEETING_ID, Room Name: $ROOM_NAME"
+echo "Starting job with ROOM_URL: $ROOM_URL, Room Name: $ROOM_NAME"
 
 # Execute main.py with the parameters
-python code/main.py "$MEETING_ID" "$ROOM_NAME"
+python code/main.py "$ROOM_URL" "$ROOM_NAME"
 
 # Execute the main command
 # exec "$@"
