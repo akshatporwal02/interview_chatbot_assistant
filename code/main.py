@@ -5,6 +5,7 @@ import numpy as np
 import pytz
 import yaml
 import sys
+import argparse
 from datetime import datetime, timezone
 from automation.browser_session import BrowserSession
 from automation.navigation import open_ui_url, ensure_ui_ready, get_daily_frame, get_daily_iframe
@@ -428,22 +429,29 @@ def join_daily(meeting_time_utc, meeting_url):
 if __name__ == "__main__":
     try:
         print(f"[main.py] argv={sys.argv}", flush=True)
-        url = None
-        room_name = None
 
-        # Simple input: expect explicit URL and ROOM_NAME via CLI or env
-        # CLI form: python code/main.py <ROOM_URL> <ROOM_NAME>
-        if len(sys.argv) >= 3:
-            url = sys.argv[1]
-            room_name = sys.argv[2]
+        # Support flags from entrypoint, positional args, and env fallbacks
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("positional", nargs="*")
+        parser.add_argument("--url", dest="flag_url")
+        parser.add_argument("--room", dest="flag_room")
+        args, _unknown = parser.parse_known_args()
 
-        # Env form: MEETING_URL and ROOM_NAME
+        url = args.flag_url
+        room_name = args.flag_room
+
+        # Positional: <ROOM_URL> <ROOM_NAME>
+        if (not url or not room_name) and len(args.positional) >= 2:
+            url = url or args.positional[0]
+            room_name = room_name or args.positional[1]
+
+        # Env: ROOM_URL and ROOM_NAME
         if not url or not room_name:
-            env_meeting = os.environ.get("ROOM_URL")
-            env_room_name = os.environ.get("ROOM_NAME")
-            print(f"[env] ROOM_URL={env_meeting} ROOM_NAME={env_room_name}", flush=True)
-            url = url or env_meeting
-            room_name = room_name or env_room_name
+            env_url = os.environ.get("ROOM_URL")
+            env_room = os.environ.get("ROOM_NAME")
+            print(f"[env] ROOM_URL={env_url} ROOM_NAME={env_room}", flush=True)
+            url = url or env_url
+            room_name = room_name or env_room
 
         if url and room_name:
             print(f"[inputs] resolved url={url} room_name={room_name}", flush=True)
@@ -456,7 +464,8 @@ if __name__ == "__main__":
                 "❌ Please provide room URL and name.\n"
                 "   Options:\n"
                 "   - CLI: python code/main.py <ROOM_URL> <ROOM_NAME>\n"
-                "   - Env: set ROOM_URL and ROOM_NAME",
+                "   - Env: set ROOM_URL and ROOM_NAME\n"
+                "   - Flags: --url <ROOM_URL> --room <ROOM_NAME>",
                 flush=True,
             )
     except Exception as e:
