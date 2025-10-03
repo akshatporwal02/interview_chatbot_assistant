@@ -63,12 +63,30 @@ fi
 echo "🚀 Starting Interview Chatbot Assistant..."
 echo "📝 Command: $@"
 
-if [ -n "$ROOM_URL" ]; then
-    set -- "$@" --url "$ROOM_URL"
-fi
-if [ -n "$ROOM_NAME" ]; then
-    set -- "$@" --room "$ROOM_NAME"
+# if [ -n "$ROOM_URL" ]; then
+#     set -- "$@" --url "$ROOM_URL"
+# fi
+# if [ -n "$ROOM_NAME" ]; then
+#     set -- "$@" --room "$ROOM_NAME"
+# fi
+
+#!/bin/bash
+
+# entrypoint.sh
+# Read environment variables passed from the webhook service
+MEETING_ID=${MEETING_ID:-""}
+ROOM_NAME=${ROOM_NAME:-""}
+
+# Validate that required parameters are present
+if [ -z "$MEETING_ID" ] || [ -z "$ROOM_NAME" ]; then
+    echo "Error: MEETING_ID and ROOM_NAME environment variables are required"
+    exit 1
 fi
 
+echo "Starting job with Meeting ID: $MEETING_ID, Room Name: $ROOM_NAME"
+
+# Execute main.py with the parameters
+python code/main.py "$MEETING_ID" "$ROOM_NAME"
+
 # Execute the main command
-exec "$@"
+# exec "$@"
