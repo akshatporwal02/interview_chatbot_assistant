@@ -14,6 +14,10 @@ sleep 2
 # Set proper permissions for directories
 echo "📁 Setting up directories and permissions..."
 mkdir -p /app/results /app/logs /app/screenshots /app/recordings
+# Directories for reports when running with relative paths under /app
+mkdir -p /app/reports/generated/images
+mkdir -p /app/reports/violation_captures
+chmod -R 775 /app/reports
 chmod 755 /app/results /app/logs /app/screenshots /app/recordings
 
 # Verify Playwright installation
@@ -58,6 +62,13 @@ fi
 
 echo "🚀 Starting Interview Chatbot Assistant..."
 echo "📝 Command: $@"
+
+if [ -n "$ROOM_URL" ]; then
+    set -- "$@" --url "$ROOM_URL"
+fi
+if [ -n "$ROOM_NAME" ]; then
+    set -- "$@" --room "$ROOM_NAME"
+fi
 
 # Execute the main command
 exec "$@"

@@ -427,61 +427,26 @@ def join_daily(meeting_time_utc, meeting_url):
 
 if __name__ == "__main__":
     try:
-        # print(f"[main.py] argv={sys.argv}", flush=True)
+        print(f"[main.py] argv={sys.argv}", flush=True)
         url = None
         room_name = None
 
-        # Priority 1: CLI args
-        # if len(sys.argv) >= 2:
-        #     # If only one arg is provided, try to detect if it's a URL or a room name
-        #     if len(sys.argv) == 2:
-        #         arg = sys.argv[1]
-        #         if arg.startswith("http://") or arg.startswith("https://"):
-        #             url = arg
-        #         else:
-        #             # Treat as room name and construct URL from env
-        #             room_name = arg
-        #             base_url = os.getenv("DAILY_ROOM_BASE_URL") or (
-        #                 f"https://{os.environ.get('DAILY_DOMAIN')}" if os.environ.get('DAILY_DOMAIN') else None
-        #             )
-        #             if base_url:
-        #                 base_url = base_url.rstrip("/")
-        #                 url = f"{base_url}/{room_name}"
-        #     elif len(sys.argv) >= 3:
-        #         url = sys.argv[1]
-        #         room_name = sys.argv[2]
+        # Simple input: expect explicit URL and ROOM_NAME via CLI or env
+        # CLI form: python code/main.py <ROOM_URL> <ROOM_NAME>
+        if len(sys.argv) >= 3:
+            url = sys.argv[1]
+            room_name = sys.argv[2]
 
-        # Priority 2: Environment variables (if CLI missing/incomplete)
-        if not url:
-            env_meeting = os.environ.get("MEETING_URL")
-            env_room_url = os.environ.get("ROOM_URL")
-            env_daily_meeting = os.environ.get("DAILY_MEETING_URL")
-            print(
-                f"[env] MEETING_URL={env_meeting} ROOM_URL={env_room_url} DAILY_MEETING_URL={env_daily_meeting}",
-                flush=True,
-            )
-            url = (
-                env_meeting
-                or env_room_url
-                or env_daily_meeting
-            )
-        if not room_name:
-            room_name = os.environ.get("ROOM_NAME")
-
-        # Derive room_name from URL if still missing
-        if url and not room_name:
-            try:
-                room_name = urlparse(url).path.lstrip("/")
-            except Exception:
-                room_name = None
-
-        # If we have only room_name, construct the meeting URL by appending to fixed base
-        if not url and room_name:
-            base_url = "https://candidly.concret.io"
-            base_url = base_url.rstrip("/")
-            url = f"{base_url}/{room_name}"
+        # Env form: MEETING_URL and ROOM_NAME
+        if not url or not room_name:
+            env_meeting = os.environ.get("ROOM_URL")
+            env_room_name = os.environ.get("ROOM_NAME")
+            print(f"[env] ROOM_URL={env_meeting} ROOM_NAME={env_room_name}", flush=True)
+            url = url or env_meeting
+            room_name = room_name or env_room_name
 
         if url and room_name:
+            print(f"[inputs] resolved url={url} room_name={room_name}", flush=True)
             print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
             log_path = init_terminal_logging(room_name)
             meeting_time_utc = datetime.now(timezone.utc)  # assume join now
@@ -490,10 +455,8 @@ if __name__ == "__main__":
             print(
                 "❌ Please provide room URL and name.\n"
                 "   Options:\n"
-                "   - CLI: python code/main.py <MEETING_URL> <ROOM_NAME>\n"
-                "   - Env: set MEETING_URL (or ROOM_URL/DAILY_MEETING_URL) and optional ROOM_NAME\n"
-                "   - Webhook style (room only): set ROOM_NAME, plus DAILY_ROOM_BASE_URL (e.g., https://yourteam.daily.co)\n"
-                "     or DAILY_DOMAIN (e.g., yourteam.daily.co) to construct the URL",
+                "   - CLI: python code/main.py <ROOM_URL> <ROOM_NAME>\n"
+                "   - Env: set ROOM_URL and ROOM_NAME",
                 flush=True,
             )
     except Exception as e:
