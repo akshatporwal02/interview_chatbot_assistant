@@ -454,6 +454,15 @@ if __name__ == "__main__":
             room_name = room_name or env_room
 
         if url and room_name:
+            # Sanitize inputs (trim spaces/quotes/semicolons)
+            raw_url, raw_room = url, room_name
+            def _clean(s: str) -> str:
+                return (s or "").strip().strip("'\";")
+            url = _clean(url)
+            room_name = _clean(room_name)
+            if (url != raw_url) or (room_name != raw_room):
+                print(f"[inputs] sanitized -> url={url} room_name={room_name} (was url={raw_url} room_name={raw_room})", flush=True)
+
             print(f"[inputs] resolved url={url} room_name={room_name}", flush=True)
             print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
             log_path = init_terminal_logging(room_name)
