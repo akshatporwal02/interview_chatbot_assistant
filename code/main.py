@@ -437,10 +437,10 @@ if __name__ == "__main__":
            # Fallback to environment variables if no command line args
            room_url = os.getenv('ROOM_URL')
            room_name = os.getenv('ROOM_NAME')
-           
+
         log_path = init_terminal_logging(room_name)
         meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-        join_daily(meeting_time_utc, url)
+        join_daily(meeting_time_utc, room_url)
     except Exception as e:
         import traceback
         print(f"[main.py] Unhandled exception: {e}", flush=True)
