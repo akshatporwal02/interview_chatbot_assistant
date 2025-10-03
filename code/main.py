@@ -430,16 +430,6 @@ if __name__ == "__main__":
     try:
         print(f"[main.py] argv={sys.argv}", flush=True)
 
-        # # Support flags from entrypoint, positional args, and env fallbacks
-        # parser = argparse.ArgumentParser(add_help=False)
-        # parser.add_argument("positional", nargs="*")
-        # parser.add_argument("--url", dest="flag_url")
-        # parser.add_argument("--room", dest="flag_room")
-        # args, _unknown = parser.parse_known_args()
-
-        # url = args.flag_url
-        # room_name = args.flag_room
-
         if len(sys.argv) >= 2:
            room_url = sys.argv[1]
            room_name = sys.argv[2]
@@ -447,44 +437,10 @@ if __name__ == "__main__":
            # Fallback to environment variables if no command line args
            room_url = os.getenv('ROOM_URL')
            room_name = os.getenv('ROOM_NAME')
-
-        # Positional: <ROOM_URL> <ROOM_NAME>
-        if (not url or not room_name) and len(args.positional) >= 2:
-            url = url or args.positional[0]
-            room_name = room_name or args.positional[1]
-
-        # Env: ROOM_URL and ROOM_NAME
-        if not url or not room_name:
-            env_url = os.environ.get("ROOM_URL")
-            env_room = os.environ.get("ROOM_NAME")
-            print(f"[env] ROOM_URL={env_url} ROOM_NAME={env_room}", flush=True)
-            url = url or env_url
-            room_name = room_name or env_room
-
-        if url and room_name:
-            # Sanitize inputs (trim spaces/quotes/semicolons)
-            raw_url, raw_room = url, room_name
-            def _clean(s: str) -> str:
-                return (s or "").strip().strip("'\";")
-            url = _clean(url)
-            room_name = _clean(room_name)
-            if (url != raw_url) or (room_name != raw_room):
-                print(f"[inputs] sanitized -> url={url} room_name={room_name} (was url={raw_url} room_name={raw_room})", flush=True)
-
-            print(f"[inputs] resolved url={url} room_name={room_name}", flush=True)
-            print(f"[main.py] starting join_daily for room={room_name} url={url}", flush=True)
-            log_path = init_terminal_logging(room_name)
-            meeting_time_utc = datetime.now(timezone.utc)  # assume join now
-            join_daily(meeting_time_utc, url)
-        else:
-            print(
-                "❌ Please provide room URL and name.\n"
-                "   Options:\n"
-                "   - CLI: python code/main.py <ROOM_URL> <ROOM_NAME>\n"
-                "   - Env: set ROOM_URL and ROOM_NAME\n"
-                "   - Flags: --url <ROOM_URL> --room <ROOM_NAME>",
-                flush=True,
-            )
+           
+        log_path = init_terminal_logging(room_name)
+        meeting_time_utc = datetime.now(timezone.utc)  # assume join now
+        join_daily(meeting_time_utc, url)
     except Exception as e:
         import traceback
         print(f"[main.py] Unhandled exception: {e}", flush=True)
