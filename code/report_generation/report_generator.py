@@ -97,6 +97,27 @@ class ReportGenerator:
             if report_data['timeline_image'] or report_data['heatmap_image']:
                 report_data['has_images'] = True
 
+            # Map suspicious activity overall remark to final status as requested:
+            # - Extremely Poor -> Rejected
+            # - Poor -> On Hold
+            try:
+                susp_overall = report_data.get('stats', {}).get('overall_remark')
+                if susp_overall:
+                    susp_overall_norm = str(susp_overall).strip().lower()
+                    # Ensure decision dict exists
+                    if report_data.get('decision') is None:
+                        report_data['decision'] = {}
+                    # Keep the original status unless mapping applies
+                    if susp_overall_norm == 'extremely poor':
+                        report_data['decision']['recommendation'] = 'Rejected'
+                    elif susp_overall_norm == 'poor':
+                        report_data['decision']['recommendation'] = 'On Hold'
+
+                    # Expose the suspicious overall remark on decision for transparency
+                    report_data['decision']['suspicious_overall_remark'] = report_data['stats'].get('overall_remark')
+            except Exception:
+                pass
+
             # Render HTML
             template = self.template_env.get_template('base_report.html')
             html_content = template.render(report_data)
@@ -113,7 +134,6 @@ class ReportGenerator:
             if output_format.lower() == 'pdf':
                 options = {
                     'enable-local-file-access': None,
-                    'quiet': '',
                     'margin-top': '10mm',
                     'margin-right': '10mm',
                     'margin-bottom': '10mm',

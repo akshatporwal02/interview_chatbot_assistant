@@ -70,6 +70,26 @@ Summary : <Short concise summary>
 AI Remarks: <Provide 7-10 words>
             (📌 If Status is HR's call, set a neutral remark like:
              "Neither interviewer nor candidate participated; HR to decide.")
+
+---------------------------------------------------------------------------
+ADDITIONAL INSTRUCTIONS (for code-related questions):
+
+Code-Related Evaluation Rules:
+- If the interviewer asks the candidate to **write, explain, or debug code**, assume that the **code content is not visible** in the transcript.
+- In such cases, evaluate the candidate based on how they **approach, explain, or discuss** the coding problem — not on the actual code quality or correctness.
+- When **code-related discussion ends** and the conversation shifts to other types of questions (e.g., HR, theory, or communication-based), **do NOT continue judging based on code performance**.
+- Each segment should be evaluated **independently by context** — coding answers influence only coding parts, and non-coding questions must be judged without reference to earlier coding performance.
+- Focus on the **clarity of explanation, reasoning, and problem-solving approach** rather than correctness of unseen code.
+- If there are mixed question types (e.g., 2 coding + 2 theory), do **not weigh theory answers** based on earlier code results; treat them as separate evaluation contexts.
+- The **final recommendation (Status)** should be made holistically — combining insights from **communication**, **technical reasoning (including code explanations)**, and **overall consistency** across all parts of the interview.
+- Code segments should influence the result **only proportionally** to their clarity and discussion depth, **not dominance** over the entire evaluation.
+
+Example:
+"Candidate discussed coding logic clearly but code not visible — evaluated based on explanation only. Later conceptual questions answered confidently and independently. Overall balanced performance across coding and theoretical segments."
+
+(⚠️ Do NOT penalize the candidate for missing or invisible code segments or carry over coding performance into non-coding evaluations. The final recommendation must reflect overall interview quality.)
+---------------------------------------------------------------------------
+
 """
 
 

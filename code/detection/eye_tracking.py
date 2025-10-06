@@ -21,8 +21,6 @@ class EyeTracker:
         self.velocity_thresh = et_cfg.get('velocity_threshold', 7.0)  # px/frame change to count micro move
         self.ear_delta_thresh = et_cfg.get('ear_delta_threshold', 0.07)  # rapid EAR change indicates occlusion/hand near face
         self.min_event_gap_sec = et_cfg.get('min_event_gap_sec', 2.0)  # debounce between alerts
-        # Rate limiter to control processing speed
-        self.max_fps = et_cfg.get('max_fps', 5)  # process at most N times per second
         self.last_gaze_change = datetime.now()
         self.gaze_direction = "center"  # Default value
         self.eye_ratio = 0.3  # Default open eye ratio
@@ -32,7 +30,6 @@ class EyeTracker:
         self._last_horiz_diff = None
         self._last_ear = None
         self._last_alert_time = datetime.min
-        self._last_process_time = datetime.min
         
         # Landmark indices for left and right eyes
         self.LEFT_EYE_INDICES = [33, 160, 158, 133, 153, 144]
@@ -61,15 +58,6 @@ class EyeTracker:
 
     def track_eyes(self, frame):
         try:
-            # Rate limit processing to max_fps without changing detection logic
-            now = datetime.now()
-            if self.max_fps and self.max_fps > 0:
-                min_interval = 1.0 / float(self.max_fps)
-                if self._last_process_time != datetime.min:
-                    if (now - self._last_process_time).total_seconds() < min_interval:
-                        return self.gaze_direction, self.eye_ratio
-                self._last_process_time = now
-
             # Convert frame to RGB and process
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = self.face_mesh.process(rgb_frame)

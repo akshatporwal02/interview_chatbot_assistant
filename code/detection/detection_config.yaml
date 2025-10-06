@@ -5,11 +5,11 @@ detection:
   eye_tracking:
     gaze_threshold: 2          # seconds
     # blink_threshold: 0.3       # EAR threshold for blink detection
-    gaze_sensitivity: 20       # base pixels threshold for gaze left/right; lower = more sensitive
-    gaze_norm_frac: 0.18       # fraction of inter-eye distance used to auto-scale threshold
-    velocity_threshold: 9.0    # px/frame change to count micro-movement (eye/nose horizontal delta)
-    ear_delta_threshold: 0.08  # rapid EAR change indicating occlusion (e.g., hand near face)
-    min_event_gap_sec: 2     # debounce to avoid alert spam while retaining responsiveness
+    gaze_sensitivity: 32       # base pixels threshold for gaze left/right; lower = more sensitive
+    gaze_norm_frac: 0.30       # fraction of inter-eye distance used to auto-scale threshold
+    velocity_threshold: 12.0    # px/frame change to count micro-movement (eye/nose horizontal delta)
+    ear_delta_threshold: 0.12  # rapid EAR change indicating occlusion (e.g., hand near face)
+    min_event_gap_sec: 3     # debounce to avoid alert spam while retaining responsiveness
     consecutive_frames: 7     # frames for gaze change detection
   multi_face:
     alert_threshold: 1     # frames
