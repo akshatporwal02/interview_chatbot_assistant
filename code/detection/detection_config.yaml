@@ -10,7 +10,7 @@ detection:
     velocity_threshold: 12.0    # px/frame change to count micro-movement (eye/nose horizontal delta)
     ear_delta_threshold: 0.12  # rapid EAR change indicating occlusion (e.g., hand near face)
     min_event_gap_sec: 3     # debounce to avoid alert spam while retaining responsiveness
-    consecutive_frames: 7     # frames for gaze change detection
+    consecutive_frames: 10    # frames for gaze change detection
   multi_face:
     alert_threshold: 1     # frames
     # MediaPipe Face Detection parameters
