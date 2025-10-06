@@ -43,6 +43,12 @@ class ObjectDetector:
         self.frame_count = 0
         self._initialize_model()
         self.last_detection_time = datetime.now()
+        # Minimal persistence filter to reduce transient false positives
+        self.persist_frames_required = int(self.config.get('persist_frames_required', 2))
+        self.persist_window_sec = float(self.config.get('persist_window_sec', 1.2))
+        self.center_dist_thresh_frac = float(self.config.get('center_dist_thresh_frac', 0.12))
+        # state: {cls: {"count": int, "last_time": datetime, "center": (x,y)}}
+        self._persist_state = {}
 
     def _initialize_model(self):
         """Initialize optimized YOLO model"""
@@ -122,6 +128,38 @@ class ObjectDetector:
                                 area_frac = (w * h) / float(orig_w * orig_h)
                                 if area_frac < self.tv_min_area_frac:
                                     continue
+
+                            # Minimal persistence gating: require same class to persist near same location
+                            x1, y1, x2, y2 = box.xyxy[0]
+                            cx = float((x1 + x2) / 2.0)
+                            cy = float((y1 + y2) / 2.0)
+                            state = self._persist_state.get(cls, {"count": 0, "last_time": datetime.min, "center": None})
+                            elapsed = (current_time - state["last_time"]).total_seconds() if state["last_time"] != datetime.min else None
+                            # reset if outside time window
+                            if elapsed is None or elapsed > self.persist_window_sec:
+                                state["count"] = 0
+                                state["center"] = (cx, cy)
+                            # distance threshold in pixels
+                            thresh_px = self.center_dist_thresh_frac * float(min(orig_w, orig_h))
+                            if state["center"] is not None:
+                                dx = cx - state["center"][0]
+                                dy = cy - state["center"][1]
+                                dist = (dx*dx + dy*dy) ** 0.5
+                            else:
+                                dist = 0.0
+                            if dist <= thresh_px:
+                                state["count"] += 1
+                            else:
+                                state["count"] = 1
+                                state["center"] = (cx, cy)
+                            state["last_time"] = current_time
+                            self._persist_state[cls] = state
+                            if state["count"] < self.persist_frames_required:
+                                # do not alert yet; wait for persistence
+                                continue
+                            # optional: reset to avoid immediate repeats
+                            state["count"] = 0
+                            self._persist_state[cls] = state
 
                             detected = True
                             label = self.class_map[cls]
