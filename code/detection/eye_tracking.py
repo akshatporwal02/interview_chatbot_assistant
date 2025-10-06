@@ -30,6 +30,7 @@ class EyeTracker:
         self._last_horiz_diff = None
         self._last_ear = None
         self._last_alert_time = datetime.min
+        self._was_moving = False
         
         # Landmark indices for left and right eyes
         self.LEFT_EYE_INDICES = [33, 160, 158, 133, 153, 144]
@@ -120,8 +121,8 @@ class EyeTracker:
                 movement_event = True
                 self.gaze_changes += 1
             
-            # Debounce alerts to avoid spamming while still being responsive
-            if movement_event and self.alert_logger:
+            # Debounce alerts and only fire on rising edge (movement starts)
+            if movement_event and not self._was_moving and self.alert_logger:
                 since_last = (current_time - self._last_alert_time).total_seconds()
                 if since_last >= self.min_event_gap_sec:
                     self.alert_logger.log_alert(
@@ -130,7 +131,8 @@ class EyeTracker:
                         frame
                     )
                     self._last_alert_time = current_time
-                # If we are within the debounce window, we just accumulate changes but don't spam alerts
+            # Update movement state for rising-edge detection
+            self._was_moving = movement_event
             
             # Update last measurements
             self._last_horiz_diff = horiz_diff

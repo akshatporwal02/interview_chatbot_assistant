@@ -22,6 +22,22 @@ class ObjectDetector:
         self.tv_class_id = int(self.config.get('tv_class_id'))
         self.tv_min_area_frac = float(self.config.get('tv_min_area_frac'))
 
+        # Optional handling for phone class id: take from config if present, else infer from class_map
+        phone_cfg = self.config.get('phone_class_id', None)
+        self.phone_class_id = int(phone_cfg) if phone_cfg is not None else None
+        if self.phone_class_id is None:
+            # Try to infer by label name containing 'phone'
+            inferred = None
+            for cid, label in self.class_map.items():
+                try:
+                    if isinstance(label, str) and 'phone' in label.lower():
+                        inferred = cid
+                        break
+                except Exception:
+                    # Ignore any odd labels
+                    pass
+            self.phone_class_id = inferred
+
         self.alert_logger = None
         self.detection_interval = int(self.config.get('detection_interval'))
         self.frame_count = 0
@@ -88,13 +104,12 @@ class ObjectDetector:
             # Run inference; augment helps on partial occlusions (slower but better recall)
             use_tta = bool(self.config.get('augment', True))
             results = self.model(frame, verbose=False, augment=use_tta)
-
             detected = False
             for result in results:
                 for box in result.boxes:
                     cls = int(box.cls)
                     conf = float(box.conf)
-
+        
                     if cls in self.class_map:
                         # Choose per-class threshold; fallback to config if not found
                         min_conf = self.class_thresholds.get(cls, float(self.config.get('min_confidence', 0.65)))
