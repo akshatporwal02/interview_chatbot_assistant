@@ -112,8 +112,8 @@ def join_daily(meeting_time_utc, meeting_url):
     with BrowserSession(headless=True, permissions=["camera", "microphone", "midi", "midi-sysex"]) as session:
         page = session.page
 
-        vercel_ui_url = "https://candidly.concret.io/"
-        open_ui_url(page, vercel_ui_url)
+        ui_url = "https://site--stagingcandidlyface--fzt5kjl8m2pw.code.run/"
+        open_ui_url(page, ui_url)
         print("✅ Opened custom Vercel-hosted UI")
         project_root = Path(__file__).resolve().parents[1]
         config_path = project_root / "config" / "config.yaml"
