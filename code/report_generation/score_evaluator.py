@@ -24,13 +24,13 @@ System Logs:
 Your response must strictly follow this format (choose exactly one option from the choices and then add a short description after it):
 
 Candidate Evaluation
-Overall Remark      : Excellent / Good / Average / Below Average / Poor / N/A
+Overall Remark      : Excellent / Good / Average / Below Average / Poor / Not assessed
                       (⚠️ Only judge based on communication + technical skills. Do NOT use suspicious activity here.)
 
-Communication Skills: Proficient / Good / Average / Below Average / Poor / N/A
+Communication Skills: Proficient / Good / Average / Below Average / Poor / Not assessed
                       Short description of communication (⚠️ Do NOT mention suspicious activity here.)
 
-Technical Skills    : Excellent / Good / Average / Below Average / Poor / N/A
+Technical Skills    : Excellent / Good / Average / Below Average / Poor / Not assessed
                     
                      List domains with skill level and short summary (⚠️ Do NOT mention suspicious activity here.)
                      Example: JavaScript - Good | Strong understanding of basics
@@ -54,11 +54,11 @@ Attitude            : Positive / Neutral / Negative
 
 
 Interviewer Evaluation
-Questions Asked (i) : HR / Relevant / SR / Irrelevant / Generic / N/A
+Questions Asked (i) : HR / Relevant / SR / Irrelevant / Generic /Not assessed
                       Short description
-Difficulty Level (i): Basic / Intermediate / Difficult / Challenging / N/A
+Difficulty Level (i): Basic / Intermediate / Difficult / Challenging / Not assessed
                       Short description
-Attitude (i)        : Polite / Harsh / Rude / N/A
+Attitude (i)        : Polite / Harsh / Rude / Not assessed
                       Short description
 
 Result
@@ -107,8 +107,8 @@ def parse_llm_response(llm_response: str):
         if not llm_response:
             print("⚠️ Empty or None LLM response")
             return (
-                [{"criteria": "Parsing Error", "value": "N/A", "score": None, "explanation": ""}],
-                [{"aspect": "Parsing Error", "value": "N/A", "description": ""}],
+                [{"criteria": "Parsing Error", "value": "Not assessed", "score": None, "explanation": ""}],
+                [{"aspect": "Parsing Error", "value": "Not assessed", "description": ""}],
                 {"recommendation": "Manual Review Required", "summary": "Parsing failed"}
             )
         
@@ -165,7 +165,7 @@ def parse_llm_response(llm_response: str):
 
                     candidate_analysis.append({
                         "criteria": "Attitude",
-                        "value": value if value else "N/A",
+                        "value": value if value else "Not assessed",
                         "score": None,
                         "explanation": "\n".join(descs)
                         })
@@ -231,8 +231,8 @@ def parse_llm_response(llm_response: str):
 
     except Exception as e:
         print(f"⚠️ Error parsing LLM response: {e}")
-        candidate_analysis = [{"criteria": "Parsing Error", "value": "N/A", "score": None, "explanation": ""}]
-        interviewer_analysis = [{"aspect": "Parsing Error", "value": "N/A", "description": ""}]
+        candidate_analysis = [{"criteria": "Parsing Error", "value": "Not assessed", "score": None, "explanation": ""}]
+        interviewer_analysis = [{"aspect": "Parsing Error", "value": "Not assessed", "description": ""}]
         decision = {"recommendation": "Manual Review Required", "summary": "Parsing failed"}
 
     return candidate_analysis, interviewer_analysis, decision
@@ -288,21 +288,21 @@ def analyze_transcript(room_name: str) -> str:
             # Short-circuit LLM; produce deterministic, neutral HR's call block respecting required format
             return (
                 "Candidate Evaluation\n"
-                "Overall Remark      : N/A\n"
+                "Overall Remark      : Not assessed\n"
                 "\n"
-                "Communication Skills: N/A\n"
+                "Communication Skills: Not assessed\n"
                 "\n"
-                "Technical Skills    : N/A\n"
+                "Technical Skills    : Not assessed\n"
                 "\n"
                 "Attitude            : Neutral\n"
                 "  No conversation to evaluate.\n"
                 "\n"
                 "Interviewer Evaluation\n"
-                "Questions Asked (i) : N/A\n"
+                "Questions Asked (i) : Not assessed\n"
                 "  No questions recorded.\n"
-                "Difficulty Level (i): N/A\n"
+                "Difficulty Level (i): Not assessed\n"
                 "  No discussion captured.\n"
-                "Attitude (i)        : N/A\n"
+                "Attitude (i)        : Not assessed\n"
                 "  Insufficient data.\n"
                 "\n"
                 "Result\n"

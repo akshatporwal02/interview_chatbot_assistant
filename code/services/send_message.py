@@ -5,6 +5,7 @@ from glob import glob
 from pathlib import Path
 import re
 import time
+import yaml
 from utils.env_utils import (
     load_dotenv,
     get_email_sender,
@@ -14,7 +15,11 @@ from utils.env_utils import (
 from report_generation.score_evaluator import analyze_transcript, parse_llm_response
 from utils.env_utils import get_env
 
-def send_email_with_attachments(report_path, student_name, receiver_email=None, room_name=None):
+def send_email_with_attachments(report_path, student_name, receiver_email=None, room_name=None,
+                                final_status: str | None = None,
+                                forced_reason: str | None = None,
+                                ai_remarks_override: str | None = None,
+                                suspicious_text_override: str | None = None):
     """
     Send email with PDF report, transcript file, and log file attachments
     
@@ -46,16 +51,17 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
     # --------------------
     # Derive dynamic fields from LLM prompt outputs and logs
     # --------------------
-    status_text = "Summary"
-    ai_remarks_text = "Not available"
-    suspicious_text = "Not available"
+    status_text = (final_status or "Summary")
+    ai_remarks_text = (ai_remarks_override or "Not available")
+    suspicious_text = (suspicious_text_override or "Not available")
+    forced_reason = forced_reason
 
     try:
         project_root = Path(__file__).resolve().parents[2]
 
         # 1) Suspicious activity count derived like ReportGenerator total violations
         #    Count ALL alerts (all types) except FACE_REAPPEARED across room logs.
-        if room_name:
+        if (not suspicious_text_override) and room_name:
             logs_glob = str(project_root / "code" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
             log_files = sorted(glob(logs_glob))
             if log_files:
@@ -81,17 +87,19 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
                     pass
 
         # 2) Status and AI Remarks (4–5 words) from LLM analysis (prompt region)
-        if room_name:
+        #    Only if not explicitly provided by caller
+        if (not final_status or not ai_remarks_override) and room_name:
             try:
                 llm_analysis = analyze_transcript(room_name)
                 cand, intr, dec = parse_llm_response(llm_analysis)
                 if dec:
-                    if dec.get('recommendation'):
+                    if (not final_status) and dec.get('recommendation'):
                         status_text = dec.get('recommendation').strip()
-                    if dec.get('ai_remarks'):
+                    if (not ai_remarks_override) and dec.get('ai_remarks'):
                         ai_remarks_text = dec.get('ai_remarks').strip()
             except Exception:
                 pass
+        # If caller provided final_status, do not attempt any overrides here.
     except Exception:
         pass
 

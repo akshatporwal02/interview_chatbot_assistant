@@ -2,44 +2,38 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>{{ student.name }} - {{(decision and decision.recommendation) or ''}}</title>
+  <title>{{ (decision and decision.recommendation) or '' }} - {{ student.name }}</title>
   <style>
     body{
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       margin:0; padding:20px; background:#fafafa; color:#333; line-height:1.6;
     }
     .header{
-      padding:20px;
-      border-radius:8px;
-      border: 2px solid #EC8E00;
-      box-shadow:0 2px 6px rgba(0,0,0,0.06);
-      background:#fff;
+      padding:12px 8px; /* add comfortable spacing around status area */
+      border:none;
+      box-shadow:none;
+      background:transparent;
     }
-    .header h1{
-      font-size:20px;
-      font-weight:bold;
-      text-align:center;
-      margin:0 0 12px 0;
-      color:#000;
-      padding-bottom:4px;
-    }
+    .header h1{ font-size:28px; font-weight:800; margin:10px 0 12px 0; display:flex; align-items:center; gap:0.75em; line-height:1; }
+    .dot{ width:1em; height:1em; border-radius:50%; display:inline-block; flex:0 0 auto; margin-right:0.6em; }
+    .dot.go { background:#16a34a; }         /* green */
+    .dot.reject { background:#dc2626; }     /* red */
+    .dot.hold { background:#DAA520; }       /* darker yellow (goldenrod) */
+    .dot.reeval { background:#f97316; }     /* orange */
+    .dot.hr { background:#2563eb; }         /* blue */
     .status-go-ahead { color: green !important; font-weight: bold; }
     .status-rejected { color: red !important; font-weight: bold; }
-    .status-on-hold { color: #FFD700 !important; font-weight: bold; }
+    .status-on-hold { color: #DAA520 !important; font-weight: bold; }
     .status-re-evaluation { color: orange !important; font-weight: bold; }
     .status-hr-call { color: blue !important; font-weight: bold; }
     /* Overall remark colors */
     .remark-excellent { color: green; font-weight: 600; }
-    .remark-good { color: #FFD700; font-weight: 600; }
+    .remark-good { color: #DAA520; font-weight: 600; }
+    .remark-average { color: orange; font-weight: 600; }
     .remark-bad { color: red; font-weight: 600; }
-    .header-table{
-      width:100%;
-      border-collapse:collapse;
-      margin-bottom:10px;
-    }
-    /* Make header table look like neat key/value lines (no borders) */
-    .header-table{ border:none !important; box-shadow:none !important; background:transparent !important; }
-    .header-table td, .header-table th{ border:none !important; padding:4px 6px; background:transparent; }
+    .header-table{ width:100%; border-collapse:collapse; margin-top:6px; }
+    .header-table th{ background:#f3f4f6; color:#111; }
+    .header-table td, .header-table th{ padding:10px; border:1px solid #e5e7eb; }
     .label{ font-weight:600; white-space:nowrap; }
     .section{ margin-top: 30px; }
     table{
@@ -66,6 +60,12 @@
     .section, .header, .legend-box, table, .violation-group {
       page-break-inside: avoid;
     }
+    /* Keep headings with following content and prevent breaking inside groups */
+    .section-title { page-break-after: avoid; break-after: avoid; }
+    .keep-with-next { page-break-after: avoid; break-after: avoid; }
+    .keep-together { width:100%; border-collapse:collapse; table-layout:fixed; page-break-inside:avoid; break-inside:avoid; }
+    .keep-together td { border:0; padding:0; page-break-inside:avoid; break-inside:avoid; }
+    .violation { page-break-inside: avoid; break-inside: avoid; }
     .critical{ color:red; font-weight:bold; }
     .major{ color:orange; font-weight:bold; }
     .medium{ color:#f39c12; font-weight:bold; }
@@ -76,92 +76,68 @@
 
 <!-- ===== HEADER ===== -->
 <div class="header">
-  <h1>{{ student.name }} - 
-    {% set status = (decision and decision.recommendation) or '' %}
+  {% set status = (decision and decision.recommendation) or (status or '') %}
+  {% set dot_class = '' %}
+  {% if status %}
     {% if status.lower() == 'go ahead' %}
-      <span class="status-go-ahead">{{ status }}</span>
+      {% set dot_class = 'go' %}
     {% elif status.lower() == 'rejected' %}
-      <span class="status-rejected">{{ status }}</span>
+      {% set dot_class = 'reject' %}
     {% elif status.lower() == 'on hold' %}
-      <span class="status-on-hold">{{ status }}</span>
+      {% set dot_class = 'hold' %}
     {% elif status.lower() == 're-evaluation' %}
+      {% set dot_class = 'reeval' %}
+    {% elif status.lower() == "hr's call" or status.lower() == 'hr to decide' %}
+      {% set dot_class = 'hr' %}
+    {% endif %}
+  {% endif %}
+  <h1><span class="dot {{ dot_class }}"></span>
+    {% if status and status.lower() == 'go ahead' %}
+      <span class="status-go-ahead">{{ status }}</span>
+    {% elif status and status.lower() == 'rejected' %}
+      <span class="status-rejected">{{ status }}</span>
+    {% elif status and status.lower() == 'on hold' %}
+      <span class="status-on-hold">{{ status }}</span>
+    {% elif status and status.lower() == 're-evaluation' %}
       <span class="status-re-evaluation">{{ status }}</span>
-    {% elif status.lower() == "HR's call" or status.lower() == 'hr to decide' %}
+    {% elif status and (status.lower() == "hr's call" or status.lower() == 'hr to decide') %}
       <span class="status-hr-call">{{ status }}</span>
     {% else %}
-      {{ status }}
+      {{ status or '' }}
     {% endif %}
   </h1>
-  <table class="header-table">
-    <tr>
-      <td class="label">Candidate ID</td><td>:</td><td>{{ student.id or '' }}</td>
-      <td class="label">Room Name</td><td>:</td><td>{{ meeting_info.room or meeting_info.room_name or '' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Session ID</td><td>:</td><td>{{ meeting_info.id or '' }}</td>
-      <td class="label">Start Time</td><td>:</td><td>{{ meeting_info.start_time_ist or '' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Status</td><td>:</td><td>
-        {% set status = (decision and decision.recommendation) or '' %}
-        {% if status.lower() == 'go ahead' %}
-          <span class="status-go-ahead">{{ status }}</span>
-        {% elif status.lower() == 'rejected' %}
-          <span class="status-rejected">{{ status }}</span>
-        {% elif status.lower() == 'on hold' %}
-          <span class="status-on-hold">{{ status }}</span>
-        {% elif status.lower() == 're-evaluation' %}
-          <span class="status-re-evaluation">{{ status }}</span>
-        {% elif status.lower() == "hr's call" or status.lower() == 'hr to decide' %}
-          <span class="status-hr-call">{{ status }}</span>
-        {% else %}
-          {{ status }}
-        {% endif %}
-      </td>
-      <td class="label">End Time</td><td>:</td><td>{{ meeting_info.end_time_ist or '' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Interviewer ID</td><td>:</td><td>{{ interviewer_name or '' }}</td>
-      <td class="label">Duration</td><td>:</td><td>{{meeting_info.duration_str or '' }}</td>    
-    </tr>
-    <tr>
-      <!-- <td class="label">Network Condition</td><td>:</td><td>{{ network_condition or '' }}</td> -->
-      <td class="label">Email</td><td>:</td><td>{{ student.email or '' }}</td>
-      <td class="label"></td><td></td><td></td>
 
-    </tr>
+  <!-- Two-row table: headers then values -->
+  <table class="header-table">
+    <thead>
+      <tr>
+        <th>Interviewer</th>
+        <th>Candidate</th>
+        <th>Start Time</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ interviewer_display_name or interviewer_display or interviewer_name or '' }}</td>
+        <td>{{ candidate_display_name or candidate_display or student.name or '' }}</td>
+        <td>{{ meeting_info.start_time_ist or '' }}</td>
+        <td>{{ meeting_info.duration_str or '' }}</td>
+      </tr>
+    </tbody>
   </table>
 
-  <!-- <table class="header-table">
-    <tr>
-      <td class="label">Experience :</td>
-      <td>{{ job.experience or '' }}</td>
-      <td class="label">Position applied For :</td>
-      <td>{{ job.position or '' }}</td>
-    </tr>
-    <tr>
-      <td class="label">JD Link :</td>
-      <td>
-        {% if job.jd_link %}
-          <a href="{{ job.jd_link }}" target="_blank" rel="noopener">{{ job.jd_link }}</a>
-        {% endif %}
-      </td>
-    </tr>
-  </table> -->
-
-  <!-- <table class="header-table">
-    <tr>
-      <td class="label">Scheduled By :</td>
-      <td>
-        {{ scheduled_by or '' }}
-        {% if scheduled_by_email %} ({{ scheduled_by_email }}){% endif %}
-      </td>
-    </tr>
-    <tr>
-      <td class="label">Current Round :</td>
-      <td>{{ job.current_round or '' }}</td>
-    </tr>
-  </table> -->
+  <!-- Quick Summary bullets -->
+  {% if quick_summary %}
+  <div style="margin-top:14px;">
+    <h2 style="margin:0 0 6px 0;">Quick Summary</h2>
+    <ul>
+      <li><strong>Fraud Check:</strong> {{ quick_summary.fraud_check }}</li>
+      <li><strong>Interview:</strong> {{ quick_summary.interview }}</li>
+      <li><strong>System Suggests:</strong> {{ quick_summary.system_suggests }}</li>
+    </ul>
+  </div>
+  {% endif %}
 </div>
 
 <!-- ===== FRADULENT STATISTICS ===== -->
@@ -271,8 +247,21 @@
           <td>{{ row.explanation }}</td>
         </tr>
         {% elif row.criteria == "Overall Remark" %}
+        {% set rv = (row.value or '') %}
+        {% set rl = rv.lower() %}
+        {% if rl == 'excellent' %}
+          {% set cls = 'remark-excellent' %}
+        {% elif rl == 'good' %}
+          {% set cls = 'remark-good' %}
+        {% elif rl == 'average' %}
+          {% set cls = 'remark-average' %}
+        {% elif rl in ['below average', 'poor'] %}
+          {% set cls = 'remark-bad' %}
+        {% else %}
+          {% set cls = '' %}
+        {% endif %}
         <tr>
-          <td colspan="3"><strong>Overall Remark: {{ row.value }}</strong></td>
+          <td colspan="3"><strong>Overall Remark: <span class="{{ cls }}">{{ rv }}</span></strong></td>
         </tr>
         {% else %}
         <tr>
@@ -327,12 +316,40 @@
       <td>{{ decision.summary }}</td>
     </tr>
   </table>
+  <p style="font-style:italic; color:#555; font-size:12px; margin-top:6px;">
+    <span style="color:#e11d48; font-weight:700;">*</span>
+    This is generated using AI, please use this as a guidance, and exercise caution while sharing the results further.
+  </p>
 </div>
 {% else %}
 <div class="section">
   <p>No final recommendation available.</p>
 </div>
 {% endif %}
+
+<!-- Divider line before System Info -->
+<hr style="border:0; border-top:1px solid #e5e7eb; margin:24px 0;" />
+
+<!-- ===== SYSTEM INFO ===== -->
+<div class="section">
+  <h2>System Info</h2>
+  <p>Please copy information below to log any issues with this report at <a href="mailto:candidly-support@concret.io">candidly-support@concret.io</a></p>
+  <table>
+    <tbody>
+      <tr><th style="width:220px;">Candidate ID</th><td>{{ student.id or '' }}</td></tr>
+      <tr><th>Candidate mail id</th><td>{{ student.email or '' }}</td></tr>
+      <tr><th>Interviewer ID</th><td>{{ interviewer_display or interviewer_name or '' }}</td></tr>
+      <tr><th>Room Name</th><td>{{ meeting_info.room or meeting_info.room_name or '' }}</td></tr>
+      <tr><th>Session ID</th><td>{{ meeting_info.id or '' }}</td></tr>
+      <tr><th>Start Time</th><td>{{ meeting_info.start_time_ist or '' }}</td></tr>
+      <tr><th>End Time</th><td>{{ meeting_info.end_time_ist or '' }}</td></tr>
+      <tr><th>Duration</th><td>{{ meeting_info.duration_str or '' }}</td></tr>
+    </tbody>
+  </table>
+  <div style="display:flex; justify-content:flex-end;">
+    <div style="font-size:12px; color:#555;">Drop Feedback - <a href="mailto:candidly-support@concret.io">candidly-support@concret.io</a></div>
+  </div>
+</div>
 
 <!-- ===== LEGEND & SEVERITY ===== -->
 <div class="legend-box">

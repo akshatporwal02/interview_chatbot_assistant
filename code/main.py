@@ -416,6 +416,9 @@ def join_daily(meeting_time_utc, meeting_url):
                             student_name=student['name'],
                             receiver_email=receiver,  # falls back inside to .env if None
                             room_name=room_name,
+                            final_status=(decision or {}).get('recommendation'),
+                            forced_reason=(decision or {}).get('forced_reason'),
+                            ai_remarks_override=(decision or {}).get('ai_remarks'),
                         )
                     except Exception as e:
                         print(f"❌ Failed to send email for {student['name']}: {e}")

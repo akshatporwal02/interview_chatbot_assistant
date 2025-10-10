@@ -7,6 +7,11 @@ from jinja2 import Environment, FileSystemLoader
 import matplotlib.pyplot as plt
 from datetime import datetime
 import logging
+from utils.env_utils import load_dotenv, get_openai_api_key
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
 class ReportGenerator:
     def __init__(self, config):
@@ -34,6 +39,16 @@ class ReportGenerator:
         
         # Severity mapping
         self.severity_map = self.config.get('severity_levels', {})
+
+        # LLM client (optional)
+        self.llm_client = None
+        try:
+            load_dotenv()
+            api_key = get_openai_api_key()
+            if OpenAI and api_key:
+                self.llm_client = OpenAI(api_key=api_key)
+        except Exception:
+            self.llm_client = None
 
     def generate_report(self, student_info, violations, candidate_analysis=None,
                        interviewer_analysis=None, decision=None,
@@ -73,6 +88,106 @@ class ReportGenerator:
             report_data['interviewer_analysis'] = interviewer_analysis
             report_data['decision'] = decision
 
+            # Expose status for template convenience
+            try:
+                report_data['status'] = ((decision or {}).get('recommendation') or '').strip()
+            except Exception:
+                report_data['status'] = ''
+
+            # Participant mapping: interviewer vs candidate based on rules
+            # - Ignore participant named exactly 'strata(Bot)' (case-insensitive)
+            # - Prefer any participant whose name/email contains 'concret.io' as Interviewer
+            # - Remaining human becomes Candidate
+            # - Display only names (no emails/IDs); if only email available, use local-part
+            def _norm_name(x):
+                try:
+                    return str(x or '').strip()
+                except Exception:
+                    return ''
+
+            def _get_identifier(p):
+                """Return best identifier (email or name/string)."""
+                if isinstance(p, dict):
+                    return _norm_name(p.get('email') or p.get('name') or p.get('id'))
+                return _norm_name(p)
+
+            def _get_name_only(p):
+                """Return a clean display name.
+                Priority: dict.name > email local-part > raw string (no domain if email)
+                """
+                if isinstance(p, dict):
+                    name = _norm_name(p.get('name'))
+                    email = _norm_name(p.get('email'))
+                    if name:
+                        return name
+                    if email and '@' in email:
+                        return email.split('@', 1)[0]
+                    rid = _norm_name(p.get('id'))
+                    return rid
+                s = _norm_name(p)
+                if '@' in s:
+                    return s.split('@', 1)[0]
+                return s
+
+            participants = []
+            try:
+                raw_parts = (meeting_info or {}).get('participants') or []
+                # Filter out bot
+                for p in raw_parts:
+                    ident = _get_identifier(p)
+                    if ident.lower() == 'strata(bot)':
+                        continue
+                    if ident:
+                        participants.append(p)
+            except Exception:
+                participants = []
+
+            interviewer_display = ''
+            candidate_display = ''
+            # Apply concret.io heuristic
+            for part in participants:
+                ident_str = _get_identifier(part).lower()
+                if 'concret.io' in ident_str:
+                    # Force interviewer display as 'concret.io' per requirement
+                    interviewer_display = 'concret.io'
+                else:
+                    # prefer first non-concret.io as candidate
+                    if not candidate_display:
+                        candidate_display = _get_name_only(part)
+            # Fallbacks
+            if not candidate_display:
+                # Prefer student's name; if only email, strip domain
+                s_name = _norm_name(student_info.get('name'))
+                s_email = _norm_name(student_info.get('email'))
+                if s_name:
+                    candidate_display = s_name
+                elif s_email:
+                    candidate_display = s_email.split('@', 1)[0] if '@' in s_email else s_email
+                else:
+                    candidate_display = ''
+            if not interviewer_display:
+                interviewer_display = _norm_name(student_info.get('interviewer_name'))
+
+            # Final sanitization: never show IDs/emails for interviewer; prefer 'concret.io'
+            def _looks_like_id_or_email(s: str) -> bool:
+                s = _norm_name(s)
+                if not s:
+                    return True
+                if '@' in s:
+                    return True
+                # UUID-like heuristic
+                if len(s) >= 24 and '-' in s:
+                    return True
+                return False
+
+            if _looks_like_id_or_email(interviewer_display):
+                interviewer_display = 'concret.io'
+
+            report_data['interviewer_display'] = interviewer_display
+            report_data['candidate_display'] = candidate_display
+            report_data['interviewer_display_name'] = interviewer_display
+            report_data['candidate_display_name'] = candidate_display
+
             # Thresholds for violations
             violation_thresholds = {
                 "TOTAL VIOLATIONS": {"critical": 7, "major": 5, "medium": 3},
@@ -107,16 +222,105 @@ class ReportGenerator:
                     # Ensure decision dict exists
                     if report_data.get('decision') is None:
                         report_data['decision'] = {}
-                    # Keep the original status unless mapping applies
+                    # Keep the original status unless mapping applies and causes a change
+                    forced_reason = None
+                    original_rec = str((report_data['decision'] or {}).get('recommendation') or '').strip()
+                    target_rec = None
                     if susp_overall_norm == 'extremely poor':
-                        report_data['decision']['recommendation'] = 'Rejected'
+                        target_rec = 'Rejected'
                     elif susp_overall_norm == 'poor':
-                        report_data['decision']['recommendation'] = 'On Hold'
+                        target_rec = 'On Hold'
+
+                    if target_rec:
+                        # Only mark as forced if we are changing the recommendation
+                        if original_rec.lower() != target_rec.lower():
+                            report_data['decision']['recommendation'] = target_rec
+                            forced_reason = (
+                                "The status has been marked as rejected due to an 'Extremely Poor' overall remark identified in the fraudulent statistics."
+                                if target_rec == 'Rejected' else
+                                "The status has been marked as rejected due to an 'Poor' overall remark identified in the fraudulent statistics."
+                            )
 
                     # Expose the suspicious overall remark on decision for transparency
                     report_data['decision']['suspicious_overall_remark'] = report_data['stats'].get('overall_remark')
+                    if forced_reason:
+                        # Keep field for internal/debug use
+                        report_data['decision']['forced_reason'] = forced_reason
+                        # Append the reason into the summary line (single place to show it)
+                        try:
+                            existing_summary = (report_data['decision'].get('summary') or '').strip()
+                            sep = ' ' if existing_summary and not existing_summary.endswith('.') else ' '
+                            report_data['decision']['summary'] = (existing_summary + sep + forced_reason).strip()
+                        except Exception:
+                            pass
             except Exception:
                 pass
+
+            # Build Quick Summary section
+            try:
+                # Fraud Check: list unique violation categories present (once)
+                by_type = report_data['stats'].get('by_type', {})
+                fraud_bits = []
+                if by_type.get('MULTIPLE_FACES', 0) > 0:
+                    fraud_bits.append('Multiple faces detected')
+                if by_type.get('FORBIDDEN_OBJECT', 0) > 0:
+                    fraud_bits.append('Forbidden object detected')
+                if by_type.get('FACE_DISAPPEARED', 0) > 0:
+                    fraud_bits.append('Face disappeared events detected')
+                if by_type.get('EYE_MOVEMENT', 0) > 0:
+                    fraud_bits.append('Suspicious eye movement detected')
+                fraud_text = ', '.join(fraud_bits) + '.' if fraud_bits else 'No fraud signals detected.'
+
+                # Interview: summarize from candidate_analysis (robust to label/value variants)
+                def _first_val(d: dict):
+                    return (
+                        d.get('value')
+                        or d.get('evaluation')
+                        or d.get('score')
+                        or d.get('rating')
+                        or d.get('summary')
+                    )
+
+                comm = tech = attitude = None
+                if candidate_analysis:
+                    for row in candidate_analysis:
+                        key = str(row.get('criteria', row.get('aspect', ''))).strip().lower()
+                        val = _first_val(row)
+                        if not val:
+                            continue
+                        if 'communicat' in key:
+                            comm = val
+                        elif ('technical' in key) or ('docker' in key):
+                            tech = val
+                        elif 'attitude' in key:
+                            attitude = val
+                parts = []
+                if comm:
+                    parts.append(f"Communication {str(comm).lower()}")
+                if tech:
+                    parts.append(f"Technical skills {str(tech).lower()}")
+                if attitude:
+                    parts.append(f"Attitude {attitude}.")
+                interview_text = '; '.join(parts)
+                if interview_text and not interview_text.endswith('.'):
+                    interview_text += '.'
+
+                # System Suggests: concise one-liner generated by LLM
+                dec = report_data.get('decision') or {}
+                rec = (dec.get('recommendation') or '').strip()
+                summ = (dec.get('summary') or '').strip()
+                base_text = summ or rec
+                sys_suggests = ''
+                if base_text:
+                    sys_suggests = self._summarize_one_line(base_text) or base_text
+
+                report_data['quick_summary'] = {
+                    'fraud_check': fraud_text,
+                    'interview': interview_text or 'No interview summary.',
+                    'system_suggests': sys_suggests or 'No suggestion.'
+                }
+            except Exception:
+                report_data['quick_summary'] = None
 
             # Render HTML
             template = self.template_env.get_template('base_report.html')
@@ -161,6 +365,31 @@ class ReportGenerator:
                 self.logger.error(f"Configured wkhtmltopdf path does not exist: {wk}. On Linux/Docker, install wkhtmltopdf in the image and leave this config empty.")
             else:
                 self.logger.error("Ensure wkhtmltopdf is installed and available on PATH, or set reporting.wkhtmltopdf_path to a valid executable.")
+            return None
+
+    def _summarize_one_line(self, text: str) -> str:
+        """Use LLM to produce a single concise sentence from the given text.
+        Returns None on failure so caller can fallback.
+        """
+        try:
+            if not self.llm_client:
+                return None
+            prompt = (
+                "Summarize the following recommendation into one concise sentence (<= 25 words). "
+                "Do not add extra details. Keep it neutral and actionable.\n\n" + str(text)
+            )
+            resp = self.llm_client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=60,
+            )
+            content = (resp.choices[0].message.content or '').strip()
+            # Ensure single line
+            import re as _re
+            content = _re.sub(r"\s+", " ", content)
+            return content or None
+        except Exception:
             return None
 
     def _calculate_stats(self, violations):

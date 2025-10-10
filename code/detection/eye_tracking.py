@@ -119,6 +119,11 @@ class EyeTracker:
             if velocity > self.velocity_thresh or ear_delta > self.ear_delta_thresh:
                 movement_event = True
                 self.gaze_changes += 1
+
+            if movement_event:
+                since_gaze_change = (current_time - self.last_gaze_change).total_seconds()
+                if since_gaze_change < self.eye_threshold:
+                   movement_event = False    
             
             # Debounce alerts to avoid spamming while still being responsive
             if movement_event and self.alert_logger:
