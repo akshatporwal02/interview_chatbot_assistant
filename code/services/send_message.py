@@ -191,7 +191,7 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
 
     try:
         project_root = Path(__file__).resolve().parents[2]
-        logs_glob = str(project_root / "code" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
+        logs_glob = str(project_root / "session_data" / "logs" / f"alerts_{room_name}_*.log")
         log_files = sorted(glob(logs_glob))
         if log_files:
             log_path = log_files[-1]
