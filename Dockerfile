@@ -17,6 +17,11 @@ RUN apt-get update && apt-get install -y \
     portaudio19-dev \
     libasound2-dev \
     libsndfile1-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libswresample-dev \
     ffmpeg \
     # Computer vision dependencies
     libopencv-dev \
@@ -95,7 +100,6 @@ USER pwuser
 
 # Expose port (if needed for health checks)
 EXPOSE 8080
-
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
