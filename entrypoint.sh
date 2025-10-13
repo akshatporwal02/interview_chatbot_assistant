@@ -20,6 +20,13 @@ mkdir -p /app/reports/violation_captures
 chmod -R 775 /app/reports
 chmod 755 /app/results /app/logs /app/screenshots /app/recordings
 
+# Ensure session data directories exist under /app/session_data (report reader expects this)
+mkdir -p /app/session_data/transcripts_doc
+mkdir -p /app/session_data/recordings
+mkdir -p /app/session_data/logs
+mkdir -p /app/session_data/terminal_logs
+chmod -R 775 /app/session_data
+
 # Verify Playwright installation
 echo "🎭 Verifying Playwright browser installation..."
 python -c "from playwright.sync_api import sync_playwright; print('✅ Playwright ready')" || {

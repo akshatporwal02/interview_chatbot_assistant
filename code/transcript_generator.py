@@ -6,15 +6,23 @@ import os
 import yaml
 import time
 import threading
+from pathlib import Path
+import os
+import wave
+from datetime import datetime
 
 class AudioMonitor:
     def __init__(self, config, room_name=None, session_timestamp: str | None = None):
         self.config = config['detection']['audio_monitoring']
-        self.recording_dir = "./session_data/recordings"
+        # Standardize session data location under project root: /app/session_data
+        # This matches entrypoint.sh and report/LLM readers that use ./session_data
+        project_root = Path(__file__).resolve().parents[2]  # /app
+        base_session_dir = project_root / "session_data"
+        self.recording_dir = str(base_session_dir / "recordings")
         os.makedirs(self.recording_dir, exist_ok=True)
         
         # Create transcripts_doc directory if it doesn't exist
-        self.transcripts_dir = "./session_data/transcripts_doc"
+        self.transcripts_dir = str(base_session_dir / "transcripts_doc")
         os.makedirs(self.transcripts_dir, exist_ok=True)
         
         self.room_name = room_name or "unknown_room"
