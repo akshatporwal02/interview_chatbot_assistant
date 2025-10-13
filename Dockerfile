@@ -57,7 +57,9 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu \
+        torch==2.3.1+cpu torchvision==0.18.1+cpu torchaudio==2.3.1+cpu && \
+    pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Install Playwright browsers
 RUN playwright install chromium && \
