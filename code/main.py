@@ -103,6 +103,11 @@ def join_daily(meeting_time_utc, meeting_url):
 
     meeting_time_ist = utc_to_ist(meeting_time_utc)
     room_name = urlparse(meeting_url).path.lstrip("/")
+    # Ensure terminal logging uses the resolved room_name so attachment lookup matches
+    try:
+        init_terminal_logging(room_name)
+    except Exception:
+        pass
     meeting_info = None
 
     print(f"🗕️ Meeting Scheduled IST: {meeting_time_ist.strftime('%Y-%m-%d %H:%M:%S')} | Room Name: {room_name}")
@@ -441,7 +446,10 @@ if __name__ == "__main__":
            room_url = os.getenv('ROOM_URL')
            room_name = os.getenv('ROOM_NAME')
 
-        log_path = init_terminal_logging(room_name)
+        # Initialize terminal logging only if room_name is available here; otherwise
+        # join_daily() will initialize with the resolved room name from the URL.
+        if room_name:
+            log_path = init_terminal_logging(room_name)
         meeting_time_utc = datetime.now(timezone.utc)  # assume join now
         join_daily(meeting_time_utc, room_url)
     except Exception as e:

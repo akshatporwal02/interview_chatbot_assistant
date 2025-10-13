@@ -62,7 +62,7 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
         # 1) Suspicious activity count derived like ReportGenerator total violations
         #    Count ALL alerts (all types) except FACE_REAPPEARED across room logs.
         if (not suspicious_text_override) and room_name:
-            logs_glob = str(project_root / "code" / "session_data" / "logs" / f"alerts_{room_name}_*.log")
+            logs_glob = str(project_root / "session_data" / "logs" / f"alerts_{room_name}_*.log")
             log_files = sorted(glob(logs_glob))
             if log_files:
                 try:
@@ -174,7 +174,7 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
     artifacts_attachments = 0
     try:
         project_root = Path(__file__).resolve().parents[2]
-        transcripts_glob = str(project_root / "code" / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
+        transcripts_glob = str(project_root / "session_data" / "transcripts_doc" / f"transcript_{room_name}_*.txt")
         transcript_files = sorted(glob(transcripts_glob))
         if transcript_files:
             transcript_path = transcript_files[-1]
@@ -208,7 +208,7 @@ def send_email_with_attachments(report_path, student_name, receiver_email=None, 
 
     try:
         project_root = Path(__file__).resolve().parents[2]
-        term_glob = str(project_root / "code" / "session_data" / "terminal_logs" / f"terminal_log_{room_name}_*.log")
+        term_glob = str(project_root / "session_data" / "terminal_logs" / f"terminal_log_{room_name}_*.log")
         term_files = sorted(glob(term_glob))
         if term_files:
             term_path = term_files[-1]
