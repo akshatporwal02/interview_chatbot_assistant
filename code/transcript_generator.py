@@ -15,8 +15,9 @@ class AudioMonitor:
     def __init__(self, config, room_name=None, session_timestamp: str | None = None):
         self.config = config['detection']['audio_monitoring']
         # Standardize session data location under project root: /app/session_data
+        # __file__ is /app/code/transcript_generator.py → parents[1] is /app
         # This matches entrypoint.sh and report/LLM readers that use ./session_data
-        project_root = Path(__file__).resolve().parents[2]  # /app
+        project_root = Path(__file__).resolve().parents[1]  # /app
         base_session_dir = project_root / "session_data"
         self.recording_dir = str(base_session_dir / "recordings")
         os.makedirs(self.recording_dir, exist_ok=True)
