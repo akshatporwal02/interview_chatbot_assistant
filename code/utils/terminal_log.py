@@ -1,4 +1,5 @@
 import sys
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, TextIO
@@ -35,25 +36,43 @@ def init_terminal_logging(room_name: Optional[str] = None, log_dir: Optional[Pat
     """
     Initialize terminal logging to a file while preserving console output.
 
-    - Creates code/session_data/terminal_logs if not provided.
+    - Creates session_data/terminal_logs under project root (/app) if not provided.
     - File name format: terminal_log_{room}_{YYYY-MM-DD_HH-MM-SS}.log
     - Redirects sys.stdout and sys.stderr to a Tee of (console, file).
 
     Returns the created log file path.
     """
     if log_dir is None:
-        # __file__ is code/utils/terminal_log.py → parents[1] is the 'code' directory
-        project_code_dir = Path(__file__).resolve().parents[1]
-        log_dir = project_code_dir / "session_data" / "terminal_logs"
-   
-    log_dir.mkdir(parents=True, exist_ok=True)
+        # Prefer env override (great for Docker volumes)
+        env_dir = os.getenv("TERMINAL_LOG_DIR")
+        if env_dir:
+            log_dir = Path(env_dir)
+        else:
+            # __file__ is code/utils/terminal_log.py
+            # parents[2] is the project root (/app). Use /app/session_data/terminal_logs by default.
+            project_root = Path(__file__).resolve().parents[2]
+            log_dir = project_root / "session_data" / "terminal_logs"
+
+    # Ensure directory exists; if it fails (e.g., RO bind mount), fall back to /tmp
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        candidate_dir = log_dir
+    except Exception:
+        candidate_dir = Path("/tmp/terminal_logs")
+        candidate_dir.mkdir(parents=True, exist_ok=True)
 
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     safe_room = (room_name or "session").replace(" ", "_")
-    log_path = log_dir / f"terminal_log_{safe_room}_{ts}.log"
+    log_path = candidate_dir / f"terminal_log_{safe_room}_{ts}.log"
 
-    # Line-buffered text file for prompt flushing
-    file_handle = open(log_path, "w", encoding="utf-8", buffering=1)
+    # Line-buffered text file for prompt flushing; if PermissionError, fall back to /tmp
+    try:
+        file_handle = open(log_path, "w", encoding="utf-8", buffering=1)
+    except PermissionError:
+        fallback_dir = Path("/tmp/terminal_logs")
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        log_path = fallback_dir / f"terminal_log_{safe_room}_{ts}.log"
+        file_handle = open(log_path, "w", encoding="utf-8", buffering=1)
 
     # Create tee streams so output is visible in console and written to file
     sys.stdout = Tee(_original_stdout, file_handle)
