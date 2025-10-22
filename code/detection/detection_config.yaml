@@ -23,10 +23,10 @@ detection:
   objects:
     # Model and inference settings
     model_path: "/app/models/yolov8l.pt"   # baked into image by Dockerfile
-    imgsz: 960                         # input size for YOLO
+    imgsz: 320                         # input size for YOLO
     base_conf: 0.5                     # base confidence used by YOLO
     iou: 0.6                           # NMS IoU threshold
-    augment: true                      # test-time augmentation for better recall
+    augment: false                     # test-time augmentation for better recall
 
     # Runtime throttling
     detection_interval: 5              # frames between detections
@@ -54,6 +54,15 @@ detection:
     # Special handling for TVs to reduce false positives
     tv_class_id: 62
     tv_min_area_frac: 0.015            # 1.5% of frame area
+    
+    # Optional: use a custom headphones model to veto phone detections that overlap headphones
+    veto_headphones:
+      enabled: true
+      model_path: "models/best.pt"   # place custom model here (repo-relative)
+      conf: 0.25                      # confidence for veto model
+      iou: 0.5                        # NMS IoU for veto model
+      imgsz: 960                      # smaller than main model to reduce cost
+      overlap_iou_threshold: 0.25     # if phone box IoU with headphones >= this, suppress phone
     
   audio_monitoring:
     # enabled: true

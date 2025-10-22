@@ -72,10 +72,17 @@ COPY . .
 RUN mkdir -p /app/results /app/logs /app/screenshots /app/recordings \
     && mkdir -p /app/models /app/models/ultralytics /app/models/hf_cache /app/models/ct2_cache
 
+# Ensure model directory expected by object_detection.py exists
+# Note: any weights you commit under interview_chatbot_assistant/models/ are already copied by "COPY . ."
+RUN mkdir -p /app/interview_chatbot_assistant/models
+
 # Pre-download and cache model weights at build time to avoid runtime downloads
 # 1) YOLOv8l weights
 RUN curl -L -o /app/models/yolov8l.pt \
     https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8l.pt
+
+# Mirror yolov8l.pt into the path expected by code as well (in case config points to models/yolov8l.pt)
+RUN cp /app/models/yolov8l.pt /app/interview_chatbot_assistant/models/yolov8l.pt || true
 
 # 2) Faster-Whisper medium model (CT2 format) will populate CT2_CACHE_DIR
 RUN python - <<'PY'
@@ -88,6 +95,7 @@ PY
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh
 
 # Set correct ownership to built-in Playwright user (pwuser)
 RUN chown -R pwuser:pwuser /app && \
@@ -102,6 +110,8 @@ USER pwuser
 
 # Expose port (if needed for health checks)
 EXPOSE 8080
+
+
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
