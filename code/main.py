@@ -151,6 +151,9 @@ def join_daily(meeting_time_utc, meeting_url):
             except Exception:
                 print('⚠️ Could not confirm in-call UI; proceeding')
 
+            # Small delay to let recording controls fully mount before clicking
+            frame.wait_for_timeout(1000)
+            
             start_recording_if_possible(frame)
             print("🕒 Staying in the meeting for monitoring...")
 
