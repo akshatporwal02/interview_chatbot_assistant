@@ -306,7 +306,7 @@ def join_daily(meeting_time_utc, meeting_url):
                             if daily_frame:
                                 try:
                                     stop_recording_and_leave(daily_frame)
-                                    print("✅ Bot left the meeting after 1-minute wait.")
+                                    print("✅ Bot left the meeting after 20 seconds wait.")
                                     leave_time_ist = utc_to_ist(datetime.now(timezone.utc))
                                     print(f"🕒 Bot LEFT meeting at: {leave_time_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
                                 except Exception as e:
