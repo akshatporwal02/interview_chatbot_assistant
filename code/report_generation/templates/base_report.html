@@ -70,6 +70,29 @@
     .major{ color:orange; font-weight:bold; }
     .medium{ color:#f39c12; font-weight:bold; }
     .low{ color:green; font-weight:bold; }
+    /* Separation helpers */
+    .section-divider { border:0; border-top:1px solid #e5e7eb; margin:24px 0; }
+    .page-break { page-break-after: always; break-after: page; height:0; margin:0; border:0; }
+    /* Overall remark emphasis */
+    .overall-row td { font-weight:600; }
+    /* Column alignment for Candidate Evaluation and Overall Remark tables */
+    .eval-table { table-layout: fixed; }
+    .eval-table col.col-crit { width: 26%; }
+    .eval-table col.col-eval { width: 18%; }
+    .eval-table col.col-exp  { width: 56%; }
+    /* Non-table overall remark block that aligns with section width */
+    .overall-remark { margin-top: 8px; font-weight: 600; }
+    .overall-remark-exp { margin-top: 4px; font-weight: 400; color:#333; }
+    /* Non-table grid aligned to same columns as eval-table */
+    .overall-remark-grid {
+      display: grid;
+      grid-template-columns: 26% 18% 56%;
+      background:#fff;
+      border:1px solid #d1d5db;
+      border-top:2px solid #e5e7eb;
+      margin-top:8px;
+    }
+    .overall-remark-grid > div { padding:12px; }
   </style>
 </head>
 <body>
@@ -139,6 +162,9 @@
   </div>
   {% endif %}
 </div>
+
+<!-- Separate upper block (status + meta + quick summary) from rest, without page break -->
+<hr class="section-divider" />
 
 <!-- ===== FRADULENT STATISTICS ===== -->
 <div class="section">
@@ -230,7 +256,14 @@
 
   {% if candidate_analysis %}
   <h3>Candidate Evaluation</h3>
-  <table>
+  {% set overall_val = None %}
+  {% set overall_exp = None %}
+  <table class="eval-table">
+    <colgroup>
+      <col class="col-crit" />
+      <col class="col-eval" />
+      <col class="col-exp" />
+    </colgroup>
     <thead>
       <tr>
         <th>Criteria</th>
@@ -247,22 +280,9 @@
           <td>{{ row.explanation }}</td>
         </tr>
         {% elif row.criteria == "Overall Remark" %}
-        {% set rv = (row.value or '') %}
-        {% set rl = rv.lower() %}
-        {% if rl == 'excellent' %}
-          {% set cls = 'remark-excellent' %}
-        {% elif rl == 'good' %}
-          {% set cls = 'remark-good' %}
-        {% elif rl == 'average' %}
-          {% set cls = 'remark-average' %}
-        {% elif rl in ['below average', 'poor'] %}
-          {% set cls = 'remark-bad' %}
-        {% else %}
-          {% set cls = '' %}
-        {% endif %}
-        <tr>
-          <td colspan="3"><strong>Overall Remark: <span class="{{ cls }}">{{ rv }}</span></strong></td>
-        </tr>
+        {% set overall_val = row.value %}
+        {% set overall_exp = row.explanation %}
+        
         {% else %}
         <tr>
           <td>{{ row.criteria }}</td>
@@ -273,6 +293,26 @@
       {% endfor %}
     </tbody>
   </table>
+  {% if overall_val %}
+  {% set rv = (overall_val or '') %}
+  {% set rl = rv.lower() %}
+  {% if rl == 'excellent' %}
+    {% set cls = 'remark-excellent' %}
+  {% elif rl == 'good' %}
+    {% set cls = 'remark-good' %}
+  {% elif rl == 'average' %}
+    {% set cls = 'remark-average' %}
+  {% elif rl in ['below average', 'poor'] %}
+    {% set cls = 'remark-bad' %}
+  {% else %}
+    {% set cls = '' %}
+  {% endif %}
+  <div class="overall-remark-grid">
+    <div><strong>Overall Remark</strong></div>
+    <div><strong><span class="{{ cls }}">{{ rv }}</span></strong></div>
+    <div>{{ overall_exp or '' }}</div>
+  </div>
+  {% endif %}
   {% else %}
   <p>No candidate evaluation data available.</p>
   {% endif %}
@@ -305,7 +345,7 @@
 
 {% if decision %}
 <div class="section">
-  <h3>Final Suggestion to Proceed</h3>
+{{ ... }}
   <table>
     <tr>
       <th>Recommendation</th>

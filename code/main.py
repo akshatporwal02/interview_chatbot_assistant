@@ -153,7 +153,7 @@ def join_daily(meeting_time_utc, meeting_url):
 
             # Small delay to let recording controls fully mount before clicking
             frame.wait_for_timeout(1000)
-            
+
             start_recording_if_possible(frame)
             print("🕒 Staying in the meeting for monitoring...")
 
@@ -178,7 +178,7 @@ def join_daily(meeting_time_utc, meeting_url):
         meeting_participants = []
         last_participant_check = 0
         everyone_left_time = None
-        wait_duration = 10
+        wait_duration = 20
 
         iframe_element = get_daily_iframe(page)
         daily_frame = get_daily_frame(page) if iframe_element else None
@@ -273,14 +273,14 @@ def join_daily(meeting_time_utc, meeting_url):
                 if no_candidate_present:
                     if everyone_left_time is None:
                         everyone_left_time = time.time()
-                        print("👋 All participants have left. Waiting 1 minute before leaving...")
+                        print("👋 All participants have left. Waiting 20 seconds before leaving...")
                     else:
                         wait_elapsed = time.time() - everyone_left_time
                         remaining_wait = wait_duration - wait_elapsed
                         if remaining_wait > 0:
                             print(f"⏳ Waiting {int(remaining_wait)} more seconds before leaving...")
                         else:
-                            print("⏰ 1 minute wait completed. Leaving the meeting...")
+                            print("⏰ 20 seconds wait completed. Leaving the meeting...")
                             meeting_info = get_meeting_details(room_name)
                             if meeting_info:
                                 start_utc = datetime.fromtimestamp(meeting_info["start_time"], tz=timezone.utc)
