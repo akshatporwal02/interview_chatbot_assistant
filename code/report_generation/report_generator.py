@@ -466,9 +466,9 @@ class ReportGenerator:
             elif "Major" in ratings_present:
                 stats['overall_remark'] = "Poor"
             elif "Medium" in ratings_present:
-                stats['overall_remark'] = "Good"
-            else:
                 stats['overall_remark'] = "Average"
+            else:
+                stats['overall_remark'] = "Good"
 
         return stats
 

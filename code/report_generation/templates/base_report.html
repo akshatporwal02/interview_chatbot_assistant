@@ -256,6 +256,14 @@
           <td>{{ row.value }}</td>
           <td>{{ row.explanation }}</td>
         </tr>
+        {% elif row.criteria == "Technical Skills" %}
+        <tr>
+          <td>{{ row.criteria }}</td>
+          <td>{{ row.value }}</td>
+          <td>
+            <div style="white-space: pre-line; line-height:1.45; margin-top:2px;">{{ row.explanation }}</div>
+          </td>
+        </tr>
         {% elif row.criteria == "Overall Remark" %}
         {% set rv = (row.value or '') %}
         {% set rl = rv.lower() %}

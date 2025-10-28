@@ -140,11 +140,20 @@ def parse_llm_response(llm_response: str):
                 while j < len(lines) and not lines[j].startswith("Attitude"):
                     descs.append(lines[j])
                     j += 1
+                # Join description lines and insert newlines only before a NEW tech item
+                # Pattern: start of a tech item like "JavaScript - Good" (capitalized word(s) followed by ' - ')
+                desc_text = "\n".join(descs).strip()
+                try:
+                    # Add a break only when a new tech token begins after a period.
+                    # Keeps multiple sentences within the same tech item on one block.
+                    desc_text = re.sub(r"(?<=\.)\s+(?=[A-Z][A-Za-z0-9+/ .#-]*\s-\s)", "\n", desc_text)
+                except Exception:
+                    pass
                 candidate_analysis.append({
                     "criteria": "Technical Skills",
                     "value": value,
                     "score": None,
-                    "explanation": "\n".join(descs)
+                    "explanation": desc_text
                 })
             # elif line.startswith("Attitude") and not line.startswith("Attitude (i)"):
             #     value = line.split(":", 1)[1].strip()
