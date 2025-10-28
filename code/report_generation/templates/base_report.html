@@ -20,12 +20,12 @@
     .dot.reject { background:#dc2626; }     /* red */
     .dot.hold { background:#DAA520; }       /* darker yellow (goldenrod) */
     .dot.reeval { background:#f97316; }     /* orange */
-    .dot.hr { background:#2563eb; }         /* blue */
+    .dot.hr { background:#3b82f6; }         /* lighter blue */
     .status-go-ahead { color: green !important; font-weight: bold; }
     .status-rejected { color: red !important; font-weight: bold; }
     .status-on-hold { color: #DAA520 !important; font-weight: bold; }
     .status-re-evaluation { color: orange !important; font-weight: bold; }
-    .status-hr-call { color: blue !important; font-weight: bold; }
+    .status-hr-call { color: #3b82f6 !important; font-weight: bold; }
     /* Overall remark colors */
     .remark-excellent { color: green; font-weight: 600; }
     .remark-good { color: #DAA520; font-weight: 600; }
@@ -50,21 +50,27 @@
     img{ max-width:100%; height:auto; border:2px solid #d1d5db; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
     .violation-image{ border:2px solid #d1d5db; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
     .legend-box{
-      margin-top:40px;
       padding:20px;
       border:2px solid #EC8E00;
       border-radius:8px;
       background:#f9fbfd;
     }
     .legend-box h2{ margin-top:0; color:#EC8E00; }
+    .summary-box{
+      margin-top:10px;
+      margin-bottom:18px;
+      padding:16px;
+      border:2px solid #EC8E00;
+      border-radius:10px;
+      background:#fffdfa;
+      box-shadow:none;
+      page-break-inside: avoid;
+    }
+    .summary-box h2{ margin-top:0; color:#EC8E00; }
+    .summary-box table{ margin-bottom:10px; }
     .section, .header, .legend-box, table, .violation-group {
       page-break-inside: avoid;
     }
-    /* Keep headings with following content and prevent breaking inside groups */
-    .section-title { page-break-after: avoid; break-after: avoid; }
-    .keep-with-next { page-break-after: avoid; break-after: avoid; }
-    .keep-together { width:100%; border-collapse:collapse; table-layout:fixed; page-break-inside:avoid; break-inside:avoid; }
-    .keep-together td { border:0; padding:0; page-break-inside:avoid; break-inside:avoid; }
     .violation { page-break-inside: avoid; break-inside: avoid; }
     .critical{ color:red; font-weight:bold; }
     .major{ color:orange; font-weight:bold; }
@@ -106,7 +112,7 @@
       {{ status or '' }}
     {% endif %}
   </h1>
-
+  <div class="summary-box">
   <!-- Two-row table: headers then values -->
   <table class="header-table">
     <thead>
@@ -138,6 +144,7 @@
     </ul>
   </div>
   {% endif %}
+  </div>
 </div>
 
 <!-- ===== FRADULENT STATISTICS ===== -->
@@ -171,6 +178,8 @@
             <span class="remark-excellent">{{ oremark }}</span>
           {% elif oremark.lower() == 'good' %}
             <span class="remark-good">{{ oremark }}</span>
+          {% elif oremark.lower() == 'average' %}
+            <span class="remark-average">{{ oremark }}</span>
           {% elif oremark.lower() in ['poor', 'extremely poor'] %}
             <span class="remark-bad">{{ oremark }}</span>
           {% else %}
@@ -239,6 +248,7 @@
       </tr>
     </thead>
     <tbody>
+      {% set _overall = namespace(rv='', cls='') %}
       {% for row in candidate_analysis %}
         {% if row.criteria == "Attitude" %}
         <tr>
@@ -250,19 +260,17 @@
         {% set rv = (row.value or '') %}
         {% set rl = rv.lower() %}
         {% if rl == 'excellent' %}
-          {% set cls = 'remark-excellent' %}
+          {% set _overall.cls = 'remark-excellent' %}
         {% elif rl == 'good' %}
-          {% set cls = 'remark-good' %}
+          {% set _overall.cls = 'remark-good' %}
         {% elif rl == 'average' %}
-          {% set cls = 'remark-average' %}
+          {% set _overall.cls = 'remark-average' %}
         {% elif rl in ['below average', 'poor'] %}
-          {% set cls = 'remark-bad' %}
+          {% set _overall.cls = 'remark-bad' %}
         {% else %}
-          {% set cls = '' %}
+          {% set _overall.cls = '' %}
         {% endif %}
-        <tr>
-          <td colspan="3"><strong>Overall Remark: <span class="{{ cls }}">{{ rv }}</span></strong></td>
-        </tr>
+        {% set _overall.rv = rv %}
         {% else %}
         <tr>
           <td>{{ row.criteria }}</td>
@@ -273,6 +281,10 @@
       {% endfor %}
     </tbody>
   </table>
+  {% if _overall.rv %}
+  <div style="margin-top:8px;"><strong>Overall Remark : <span class="{{ _overall.cls }}">{{ _overall.rv }}</span></strong></div>
+  {% endif %}
+
   {% else %}
   <p>No candidate evaluation data available.</p>
   {% endif %}

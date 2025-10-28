@@ -238,7 +238,7 @@ class ReportGenerator:
                             forced_reason = (
                                 "The status has been marked as rejected due to an 'Extremely Poor' overall remark identified in the fraudulent statistics."
                                 if target_rec == 'Rejected' else
-                                "The status has been marked as rejected due to an 'Poor' overall remark identified in the fraudulent statistics."
+                                "The status has been marked as on hold due to an 'Poor' overall remark identified in the fraudulent statistics."
                             )
 
                     # Expose the suspicious overall remark on decision for transparency
