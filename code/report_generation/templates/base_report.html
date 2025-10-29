@@ -110,6 +110,29 @@
         page-break-before: avoid !important;
         break-before: avoid-page !important;
       }
+      /* Ensure headings themselves don't get orphaned */
+      .section h2,
+      .section h3 {
+        page-break-after: avoid !important;   /* legacy */
+        break-after: avoid-page !important;   /* modern */
+      }
+
+      /* Do not break tables within sections, but still allow sections to flow */
+      .section table,
+      .section table thead,
+      .section table tbody,
+      .section table tr,
+      .section table th,
+      .section table td {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      /* Ensure a heading stays with its immediate content block */
+      .keep-with-next {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
     }
   </style>
 </head>
@@ -162,16 +185,18 @@
       <tr>
         <td>{{ interviewer_display_name or interviewer_display or interviewer_name or '' }}</td>
         <td>{{ candidate_display_name or candidate_display or student.name or '' }}</td>
-        <td>{{ meeting_info.start_time_ist or '' }}</td>
         <td>{{ meeting_info.duration_str or '' }}</td>
       </tr>
     </tbody>
   </table>
+  </div>
+  </div>
 
   <!-- Quick Summary bullets -->
   {% if quick_summary %}
-  <div style="margin-top:14px;">
+  <div class="keep-with-next" style="margin-top:14px;">
     <h2 style="margin:0 0 6px 0;">Quick Summary</h2>
+{{ ... }}
     <ul>
       <li><strong>Fraud Check:</strong> {{ quick_summary.fraud_check }}</li>
       <li><strong>Interview:</strong> {{ quick_summary.interview }}</li>
@@ -184,8 +209,9 @@
 
 <!-- ===== FRADULENT STATISTICS ===== -->
 <div class="section">
-  <h2>Fraudulent Statistics</h2>
-  <table>
+  <div class="keep-with-next">
+    <h2>Fraudulent Statistics</h2>
+    <table>
     <thead>
       <tr>
         <th>Activity Type</th>
@@ -228,23 +254,27 @@
 
 {% if timeline_image %}
 <div class="section">
-  <h2>Violation Timeline</h2>
-  <img class="violation-image" src="file:///{{ timeline_image }}" alt="Violation Timeline" />
+  <div class="keep-with-next">
+    <h2>Violation Timeline</h2>
+    <img class="violation-image" src="file:///{{ timeline_image }}" alt="Violation Timeline" />
+    </div>
+  </div>
 </div>
 {% endif %}
 
 <!-- ===== DETAILED VIOLATIONS ===== -->
 {% if violations %}
 <div class="section">
-  <h2>Violation Attachments</h2>
-  <div class="section-body">
+  <div class="keep-with-next">
+    <h2>Violation Attachments</h2>
+    <div class="section-body">
   {% set groups = {} %}
   {% for v in violations %}
     {% set _ = groups.setdefault(v.type, []).append(v) %}
   {% endfor %}
   {% for type, items in groups.items() %}
     {% set display_type = type.replace('_',' ').title() %}
-    <div class="violation">
+    <div class="violation keep-with-next">
       <h3>{{ display_type }} ({{ items | length }} instances)</h3>
       <table style="width:100%; border-collapse:collapse;">
         <tr>
@@ -275,8 +305,9 @@
   <h2>Interview Analysis</h2>
 
   {% if candidate_analysis %}
-  <h3>Candidate Evaluation</h3>
-  <table>
+  <div class="keep-with-next">
+    <h3>Candidate Evaluation</h3>
+    <table>
     <thead>
       <tr>
         <th>Criteria</th>
@@ -335,8 +366,9 @@
   {% endif %}
 
   {% if interviewer_analysis %}
-  <h3>Interviewer Evaluation</h3>
-  <table>
+  <div class="keep-with-next">
+    <h3>Interviewer Evaluation</h3>
+    <table>
     <thead>
       <tr>
         <th>Aspect</th>
@@ -362,8 +394,9 @@
 
 {% if decision %}
 <div class="section">
-  <h3>Final Suggestion to Proceed</h3>
-  <table>
+  <div class="keep-with-next">
+    <h3>Final Suggestion to Proceed</h3>
+    <table>
     <tr>
       <th>Recommendation</th>
       <td>{{ decision.recommendation }}</td>
@@ -389,9 +422,10 @@
 
 <!-- ===== SYSTEM INFO ===== -->
 <div class="section">
-  <h2>System Info</h2>
-  <p>Please copy information below to log any issues with this report at <a href="mailto:candidly-support@concret.io">candidly-support@concret.io</a></p>
-  <table>
+  <div class="keep-with-next">
+    <h2>System Info</h2>
+    <p>Please copy information below to log any issues with this report at <a href="mailto:candidly-support@concret.io">candidly-support@concret.io</a></p>
+    <table>
     <tbody>
       <tr><th style="width:220px;">Candidate ID</th><td>{{ student.id or '' }}</td></tr>
       <tr><th>Candidate mail id</th><td>{{ student.email or '' }}</td></tr>
@@ -409,8 +443,9 @@
 
 <!-- ===== LEGEND & SEVERITY ===== -->
 <div class="legend-box">
-  <h2>Legend & Severity Guidelines</h2>
-  <table>
+  <div class="keep-with-next">
+    <h2>Legend & Severity Guidelines</h2>
+    <table>
     <thead>
       <tr>
         <th>Violation Type</th>
