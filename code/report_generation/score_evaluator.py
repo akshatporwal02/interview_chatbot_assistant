@@ -25,13 +25,17 @@ Your response must strictly follow this format (choose exactly one option from t
 
 Candidate Evaluation
 Overall Remark      : Excellent / Good / Average / Below Average / Poor / Not assessed
-                      (⚠️ Only judge based on communication + technical skills. Do NOT use suspicious activity here.)
+                      (⚠️ Only judge based on communication + technical skills + attitude. Do NOT use suspicious activity here.)
 
 Communication Skills: Proficient / Good / Average / Below Average / Poor / Not assessed
                       Short description of communication (⚠️ Do NOT mention suspicious activity here.)
 
-Technical Skills    : Excellent / Good / Average / Below Average / Poor / Not assessed
-                    
+Technical Skills    :Excellent / Good / Average / Below Average / Poor / Not assessed
+                     Compute the overall Technical Skills value by averaging across the per-tech-stack ratings:
+                     - Map:Excellent=5, Good=4, Average=3, Below Average=2, Poor=1
+                     - Average all stacks discussed; round conservatively down to the nearest label (e.g., 3.67 -> Average).
+                     - Example: 2×Good + 1×Average => Average
+                     Return this averaged label on the 'Technical Skills' line. Keep the per-stack breakdown below.
                      List domains with skill level and short summary (⚠️ Do NOT mention suspicious activity here.)
                      Example: JavaScript - Good | Strong understanding of basics
                               CSS - Good | Clear understanding of styling
@@ -40,6 +44,7 @@ Attitude            : Positive / Neutral / Negative
                       [primary tone from communication + technical discussion] + Suspicious Indicators (if any)  [⚠️ log suspicious behavior separately but do NOT override tone]
 
                       Example outputs:
+{{ ... }}
                       - Positive
                         Polite, professional, confident. No suspicious behavior.
                       - Neutral
@@ -63,14 +68,13 @@ Attitude (i)        : Polite / Harsh / Rude / Not assessed
 
 Result
 Status  : Go Ahead / Rejected / On Hold / Re-Evaluation / HR's call
-          (⚠️ Status must be decided only from Overall Remark, not from suspicious activity.)
+          (⚠️ Decide Status from: Overall Remark (candidate evaluation) + Overall Remark (fraudulent statistics) + Questions Asked (i).)
           (📌 Exception: If both candidate and interviewer joined but there is effectively no conversation in transcript,
            choose exactly: HR's call)
 Summary : <Short concise summary>
 AI Remarks: <Provide 7-10 words>
             (📌 If Status is HR's call, set a neutral remark like:
              "Neither interviewer nor candidate participated; HR to decide.")
-
 ---------------------------------------------------------------------------
 ADDITIONAL INSTRUCTIONS (for code-related questions):
 
@@ -148,6 +152,38 @@ def parse_llm_response(llm_response: str):
                     # Keeps multiple sentences within the same tech item on one block.
                     desc_text = re.sub(r"(?<=\.)\s+(?=[A-Z][A-Za-z0-9+/ .#-]*\s-\s)", "\n", desc_text)
                 except Exception:
+                    pass
+                # Enforce averaged Technical Skills across tech stacks if per-stack ratings are present
+                try:
+                    label_to_score = {
+                        "excellent": 5,
+                        "good": 4,
+                        "average": 3,
+                        "below average": 2,
+                        "poor": 1,
+                    }
+                    score_to_label = {
+                        5: "Excellent",
+                        4: "Good",
+                        3: "Average",
+                        2: "Below Average",
+                        1: "Poor",
+                    }
+                    total = 0
+                    count = 0
+                    for line_text in desc_text.splitlines():
+                        m = re.search(r"\s-\s(Excellent|Good|Average|Below Average|Poor)\b", line_text, flags=re.IGNORECASE)
+                        if m:
+                            lbl = m.group(1).strip().lower()
+                            if lbl in label_to_score:
+                                total += label_to_score[lbl]
+                                count += 1
+                    if count > 0:
+                        avg = total / count
+                        score_int = max(1, min(5, int(avg)))  # conservative rounding down
+                        value = score_to_label.get(score_int, value)
+                except Exception:
+                    # If averaging fails, keep the original LLM-provided value
                     pass
                 candidate_analysis.append({
                     "criteria": "Technical Skills",

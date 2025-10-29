@@ -76,6 +76,28 @@
     .major{ color:orange; font-weight:bold; }
     .medium{ color:#f39c12; font-weight:bold; }
     .low{ color:green; font-weight:bold; }
+    /* Ensure violation attachments never split across pages in PDF/print */
+    @media print {
+      .violation,
+      .violation table,
+      .violation tr,
+      .violation td,
+      .violation img {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .violation h3 { page-break-after: avoid !important; }
+      /* Prevent headings from being orphaned at the bottom of a page */
+      h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid !important;
+        break-after: avoid-page !important;
+      }
+      /* Keep only key boxes together; allow generic sections/tables to flow */
+      .summary-box, .legend-box, .violation-group {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -363,7 +385,6 @@
       <tr><th>Session ID</th><td>{{ meeting_info.id or '' }}</td></tr>
       <tr><th>Start Time</th><td>{{ meeting_info.start_time_ist or '' }}</td></tr>
       <tr><th>End Time</th><td>{{ meeting_info.end_time_ist or '' }}</td></tr>
-      <tr><th>Duration</th><td>{{ meeting_info.duration_str or '' }}</td></tr>
     </tbody>
   </table>
   <div style="display:flex; justify-content:flex-end;">
