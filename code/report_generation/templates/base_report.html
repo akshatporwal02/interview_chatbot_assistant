@@ -97,6 +97,19 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
+      /* Override global rules: let generic sections and tables break normally on print */
+      .section, table {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      /* Keep section headings with their immediate next block only (reduces gaps) */
+      .section h2 + *,
+      .section h3 + * {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-before: avoid !important;
+        break-before: avoid-page !important;
+      }
     }
   </style>
 </head>
@@ -224,6 +237,7 @@
 {% if violations %}
 <div class="section">
   <h2>Violation Attachments</h2>
+  <div class="section-body">
   {% set groups = {} %}
   {% for v in violations %}
     {% set _ = groups.setdefault(v.type, []).append(v) %}
@@ -250,6 +264,7 @@
       </table>
     </div>
   {% endfor %}
+  </div>
 </div>
 {% endif %}
 

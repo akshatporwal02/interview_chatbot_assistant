@@ -253,6 +253,54 @@ def parse_llm_response(llm_response: str):
                     decision = {}
                 decision["ai_remarks"] = line.split(":", 1)[1].strip()
 
+        # Compute Overall Remark from components using weighted average and cap check
+        try:
+            # Extract values
+            comm = next((x.get("value", "") for x in candidate_analysis if x.get("criteria") == "Communication Skills"), "")
+            tech = next((x.get("value", "") for x in candidate_analysis if x.get("criteria") == "Technical Skills"), "")
+            att  = next((x.get("value", "") for x in candidate_analysis if x.get("criteria") == "Attitude"), "")
+
+            label_to_score = {
+                "excellent": 5,
+                "good": 4,
+                "average": 3,
+                "below average": 2,
+                "poor": 1,
+            }
+            att_to_score = {
+                "positive": 4,
+                "neutral": 3,
+                "negative": 2,
+            }
+
+            # Only compute when we have at least technical and communication
+            comm_s = label_to_score.get(str(comm).strip().lower())
+            tech_s = label_to_score.get(str(tech).strip().lower())
+            att_s  = att_to_score.get(str(att).strip().lower(), 3)  # default neutral if missing
+
+            if comm_s and tech_s:
+                score = 0.50 * tech_s + 0.35 * comm_s + 0.15 * att_s
+                overall_s = max(1, min(5, int(score)))  # conservative down-round
+                # Cap: Overall cannot exceed Technical + 1
+                overall_s = min(overall_s, min(5, tech_s + 1))
+                score_to_label = {5: "Excellent", 4: "Good", 3: "Average", 2: "Below Average", 1: "Poor"}
+                computed_label = score_to_label.get(overall_s)
+
+                if computed_label:
+                    # If LLM-provided overall exists, override its value; else create it
+                    if overall_remark and isinstance(overall_remark, dict):
+                        overall_remark["value"] = computed_label
+                    else:
+                        overall_remark = {
+                            "criteria": "Overall Remark",
+                            "value": computed_label,
+                            "score": None,
+                            "explanation": ""
+                        }
+                    # Keep decision mirror in sync if exists later
+        except Exception:
+            pass
+
         # 🔑 Append Overall Remark at the end of candidate_analysis
         if overall_remark:
             candidate_analysis.append(overall_remark)
